@@ -52,6 +52,13 @@ export const AppInput = ({
   const [isFocused, setIsFocused] = useState(false);
   const descriptionId = useId();
 
+  // Label, input text and helper/error text share one left edge. The field's
+  // border and inner padding push the input text inward, so the label and
+  // description are inset to match -- otherwise the three sit on two
+  // different edges. Start/End rather than Left/Right to stay RTL-safe
+  // (AGENTS.md 29).
+  const textInset = theme.spacing.md + theme.sizes.border.hairline;
+
   const hasError = error != null && error.length > 0;
   const isEditable = editable ?? !disabled;
   const description = hasError ? error : helperText;
@@ -65,14 +72,17 @@ export const AppInput = ({
   return (
     <Stack gap="xs" style={containerStyle}>
       {label != null && (
-        <AppText color={disabled ? 'disabled' : 'secondary'} variant="label">
-          {label}
-          {required ? ' *' : ''}
+        <AppText
+          color={disabled ? 'disabled' : 'secondary'}
+          style={{ marginStart: textInset }}
+          variant="label">
+          {required ? `${label} *` : label}
         </AppText>
       )}
 
       <Row
         gap="sm"
+        testID="app-input-field"
         style={{
           minHeight: theme.sizes.control.medium,
           paddingHorizontal: theme.spacing.md,
@@ -125,6 +135,7 @@ export const AppInput = ({
         <AppText
           color={hasError ? 'error' : 'secondary'}
           nativeID={descriptionId}
+          style={{ marginStart: textInset }}
           variant="caption">
           {description}
         </AppText>

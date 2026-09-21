@@ -150,6 +150,13 @@ export const PlaygroundScreen = () => {
             value={email}
           />
           <AppInput
+            error="Enter a valid email"
+            label="Error state"
+            onChangeText={() => undefined}
+            required
+            value="aaaaa"
+          />
+          <AppInput
             disabled
             label="Disabled"
             placeholder="Not editable"
