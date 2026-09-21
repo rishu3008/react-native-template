@@ -51,6 +51,11 @@ export const AppScreen = ({
 
   // Padding only. The sizing rule differs per branch below, so it is not
   // baked in here.
+  //
+  // Left/Right rather than Start/End is deliberate here and not a rule 29
+  // violation: safe-area insets describe physical screen edges. The notch
+  // stays on the physical left under RTL, so mapping insets through
+  // Start/End would apply them to the wrong side.
   const padded: ViewStyle = {
     padding: theme.spacing[padding],
     paddingTop: edges.includes('top')
