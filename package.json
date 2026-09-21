@@ -1,13 +1,22 @@
 {
-  "name": "Template",
+  "name": "TemplateProject",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "android-clean": "cd android && ./gradlew clean && cd ..",
+    "android-release": "cd android && ./gradlew assembleRelease && cd ..",
     "ios": "react-native run-ios",
+    "ios-clean": "cd ios && rm -rf Pods build Podfile.lock && bundle exec pod install && cd ..",
     "lint": "eslint .",
-    "start": "react-native start",
-    "test": "jest"
+    "generate-icons": "node scripts/generate-icons.js",
+    "generate-icons:check": "node scripts/generate-icons.js --check",
+    "start": "watchman watch-del-all && react-native start --reset-cache",
+    "deep-clean": "rm -rf node_modules package-lock.json && watchman watch-del-all && rm -rf ios/build && rm -rf android/build android/app/build android/app/.cxx && npm i",
+    "test": "jest",
+    "pods": "cd ios && bundle exec pod install && cd ..",
+    "bundle-release": "cd android && ./gradlew bundleRelease && cd ..",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "react": "19.2.3",
