@@ -3,6 +3,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   TouchableWithoutFeedback,
   View,
   type StyleProp,
@@ -48,8 +49,9 @@ export const AppScreen = ({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // Padding only. The sizing rule differs per branch below, so it is not
+  // baked in here.
   const padded: ViewStyle = {
-    flex: 1,
     padding: theme.spacing[padding],
     paddingTop: edges.includes('top')
       ? insets.top + theme.spacing[padding]
@@ -67,14 +69,18 @@ export const AppScreen = ({
 
   const body = scrollable ? (
     <ScrollView
-      contentContainerStyle={padded}
+      // flexGrow, never flex. `flex: 1` on a content container sizes the
+      // content to exactly the viewport, so it can never overflow and the
+      // view never scrolls. flexGrow fills the screen when content is short
+      // and expands past it when content is tall.
+      contentContainerStyle={[padded, { flexGrow: 1 }]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
-      style={{ flex: 1 }}>
+      style={styles.fill}>
       {children}
     </ScrollView>
   ) : (
-    <View style={padded}>{children}</View>
+    <View style={[padded, styles.fill]}>{children}</View>
   );
 
   const withDismiss = dismissKeyboardOnTap ? (
@@ -90,7 +96,7 @@ export const AppScreen = ({
     // window already resizes, and using padding there double-counts.
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1 }}>
+      style={styles.fill}>
       {withDismiss}
     </KeyboardAvoidingView>
   ) : (
@@ -100,10 +106,8 @@ export const AppScreen = ({
   return (
     <View
       style={[
-        {
-          flex: 1,
-          backgroundColor: backgroundColor ?? theme.colors.background,
-        },
+        styles.fill,
+        { backgroundColor: backgroundColor ?? theme.colors.background },
         style,
       ]}
       testID={testID}>
@@ -111,3 +115,7 @@ export const AppScreen = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+});
