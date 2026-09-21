@@ -5,10 +5,12 @@ import ReactAppDependencyProvider
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-  var window: UIWindow?
-
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
+
+  /// Retained for SceneDelegate, which starts React Native once a scene
+  /// connects. Under the scene life cycle this runs before any window exists.
+  var launchOptions: [UIApplication.LaunchOptionsKey: Any]?
 
   func application(
     _ application: UIApplication,
@@ -20,14 +22,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     reactNativeDelegate = delegate
     reactNativeFactory = factory
-
-    window = UIWindow(frame: UIScreen.main.bounds)
-
-    factory.startReactNative(
-      withModuleName: "TemplateProject",
-      in: window,
-      launchOptions: launchOptions
-    )
+    self.launchOptions = launchOptions
 
     return true
   }
