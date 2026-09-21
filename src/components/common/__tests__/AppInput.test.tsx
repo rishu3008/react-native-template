@@ -43,29 +43,28 @@ describe('AppInput', () => {
 });
 
 describe('AppInput alignment', () => {
-  it('insets label and description to the same left edge as the input text', () => {
+  it('keeps label and description flush with the field, not with the input text', () => {
     render(
       <AppInput error="Enter a valid email" label="Email" value="aaaaa" />,
     );
 
     const flat = (node: ReactTestInstance) =>
-      StyleSheet.flatten(node.props.style) as Record<string, number>;
+      StyleSheet.flatten(node.props.style) as Record<
+        string,
+        number | undefined
+      >;
 
-    // Where the input text actually starts: the field's border plus its
-    // inner padding.
+    // Label and description sit outside the border, so they share the
+    // screen's content edge with the field and the surrounding headings.
+    // Insetting them to match the input text detaches the whole column from
+    // everything else on the screen.
+    expect(flat(screen.getByText('Email')).marginStart).toBeUndefined();
+    expect(
+      flat(screen.getByText('Enter a valid email')).marginStart,
+    ).toBeUndefined();
+
+    // The text inside the border is inset by the field's own padding.
     const field = flat(screen.getByTestId('app-input-field'));
-    const inputTextEdge =
-      (field.paddingHorizontal ?? 0) + (field.borderWidth ?? 0);
-
-    // Guards against the assertion passing vacuously if the field ever loses
-    // its padding and everything collapses to zero.
-    expect(inputTextEdge).toBeGreaterThan(0);
-
-    // Derived, not hardcoded: if the field's padding changes, this still
-    // asserts that all three elements moved together.
-    expect(flat(screen.getByText('Email')).marginStart).toBe(inputTextEdge);
-    expect(flat(screen.getByText('Enter a valid email')).marginStart).toBe(
-      inputTextEdge,
-    );
+    expect(field.paddingHorizontal).toBeGreaterThan(0);
   });
 });

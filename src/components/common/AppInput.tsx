@@ -52,12 +52,15 @@ export const AppInput = ({
   const [isFocused, setIsFocused] = useState(false);
   const descriptionId = useId();
 
-  // Label, input text and helper/error text share one left edge. The field's
-  // border and inner padding push the input text inward, so the label and
-  // description are inset to match -- otherwise the three sit on two
-  // different edges. Start/End rather than Left/Right to stay RTL-safe
-  // (AGENTS.md 29).
-  const textInset = theme.spacing.md + theme.sizes.border.hairline;
+  // Label and description sit outside the field, so they align with the
+  // screen's content edge -- the same edge as the field's border and the
+  // surrounding section headings. Only the text inside the border is inset,
+  // by the field's own padding, which reads correctly because a visible box
+  // contains it.
+  //
+  // Insetting the label to match the input text instead was tried and looked
+  // wrong: it pushed the whole label/helper column ~13dp inward and detached
+  // it from every other element on the screen.
 
   const hasError = error != null && error.length > 0;
   const isEditable = editable ?? !disabled;
@@ -72,10 +75,7 @@ export const AppInput = ({
   return (
     <Stack gap="xs" style={containerStyle}>
       {label != null && (
-        <AppText
-          color={disabled ? 'disabled' : 'secondary'}
-          style={{ marginStart: textInset }}
-          variant="label">
+        <AppText color={disabled ? 'disabled' : 'secondary'} variant="label">
           {required ? `${label} *` : label}
         </AppText>
       )}
@@ -135,7 +135,6 @@ export const AppInput = ({
         <AppText
           color={hasError ? 'error' : 'secondary'}
           nativeID={descriptionId}
-          style={{ marginStart: textInset }}
           variant="caption">
           {description}
         </AppText>
