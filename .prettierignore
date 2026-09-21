@@ -1,0 +1,10 @@
+# Generated / vendored
+node_modules/
+coverage/
+vendor/
+package-lock.json
+Gemfile.lock
+
+# Native projects are owned by Gradle and Xcode, not Prettier
+android/
+ios/

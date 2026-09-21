@@ -320,9 +320,9 @@ Avoid hardcoded visual values when an appropriate design token exists.
 Prefer:
 
 ```tsx
-theme.colors.text.primary
-theme.spacing.md
-theme.radius.md
+theme.colors.text.primary;
+theme.spacing.md;
+theme.radius.md;
 ```
 
 Do not create arbitrary tokens for one-off values without justification.
@@ -1280,10 +1280,10 @@ Do not merge known broken builds into the stable template branch.
 
 CI is split by cost so that pull-request feedback stays fast:
 
-| Trigger | Runs |
-|---|---|
-| Every PR | install, typecheck, lint, tests, Android debug build |
-| Merge to `main` | the above, plus iOS build |
+| Trigger               | Runs                                                      |
+| --------------------- | --------------------------------------------------------- |
+| Every PR              | install, typecheck, lint, tests, Android debug build      |
+| Merge to `main`       | the above, plus iOS build                                 |
 | Nightly / release tag | the above, plus generated-project creation and validation |
 
 ---
@@ -1326,14 +1326,14 @@ URL scheme
 
 ### 56.1 The canonical placeholder identity
 
-| Field | Placeholder value |
-|---|---|
-| Project name / Xcode target / scheme | `TemplateProject` |
-| Display name | `TemplateProject` |
-| Android namespace | `com.templateproject` |
-| Android applicationId | `com.templateproject` |
-| iOS bundle identifier | `com.templateproject` |
-| URL scheme | `templateproject` |
+| Field                                | Placeholder value     |
+| ------------------------------------ | --------------------- |
+| Project name / Xcode target / scheme | `TemplateProject`     |
+| Display name                         | `TemplateProject`     |
+| Android namespace                    | `com.templateproject` |
+| Android applicationId                | `com.templateproject` |
+| iOS bundle identifier                | `com.templateproject` |
+| URL scheme                           | `templateproject`     |
 
 Two constraints on this choice, both deliberate:
 
@@ -1591,20 +1591,20 @@ This is the per-change bar. The per-release bar is Rule 57.
 A rule that is not mechanically checked decays. Prose in this file is the intent;
 the table below is what actually holds the line.
 
-| Rule | Check | Status |
-|---|---|---|
-| 6 — dependency direction | `eslint-plugin-boundaries` / `import/no-restricted-paths` | Phase 1 |
-| 9 — no hardcoded visual values | `react-native/no-color-literals`, `no-inline-styles` | Phase 2 |
-| 22 — no uncontrolled `console.log` | `no-console` | Phase 1 |
-| 23 — no committed secrets | `gitleaks` in CI | Phase 7 |
-| 41 — strict TS, avoid `any` | `strict: true`, `@typescript-eslint/no-explicit-any` | Phase 1 |
-| 43 — file size | `max-lines` (warning, not error) | Phase 1 |
-| 46 — no deep relative imports | `import/no-relative-parent-imports` | Phase 1 |
-| 49 — coverage | Jest `coverageThreshold` | Phase 7 |
-| 52 — commit format | `commitlint` + Husky | Phase 1 |
-| 53 — validation before completion | `npm run validate` + pre-commit hook | Phase 1 |
-| 54 — CI | GitHub Actions | Phase 1, expanded Phase 7 |
-| 55 — generated project builds | CI generated-project job | Phase 8 |
+| Rule                               | Check                                                     | Status                    |
+| ---------------------------------- | --------------------------------------------------------- | ------------------------- |
+| 6 — dependency direction           | `eslint-plugin-boundaries` / `import/no-restricted-paths` | Phase 1                   |
+| 9 — no hardcoded visual values     | `react-native/no-color-literals`, `no-inline-styles`      | Phase 2                   |
+| 22 — no uncontrolled `console.log` | `no-console`                                              | Phase 1                   |
+| 23 — no committed secrets          | `gitleaks` in CI                                          | Phase 7                   |
+| 41 — strict TS, avoid `any`        | `strict: true`, `@typescript-eslint/no-explicit-any`      | Phase 1                   |
+| 43 — file size                     | `max-lines` (warning, not error)                          | Phase 1                   |
+| 46 — no deep relative imports      | `import/no-relative-parent-imports`                       | Phase 1                   |
+| 49 — coverage                      | Jest `coverageThreshold`                                  | Phase 7                   |
+| 52 — commit format                 | `commitlint` + Husky                                      | Phase 1                   |
+| 53 — validation before completion  | `npm run validate` + pre-commit hook                      | Phase 1                   |
+| 54 — CI                            | GitHub Actions                                            | Phase 1, expanded Phase 7 |
+| 55 — generated project builds      | CI generated-project job                                  | Phase 8                   |
 
 Rules not in this table are reviewer-enforced and rely on Rule 51. That is a known
 limitation, not an oversight: the list above should grow over time, and a rule that

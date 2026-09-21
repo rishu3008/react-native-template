@@ -1,0 +1,10 @@
+{
+  "templateVersion": "0.1.0",
+  "reactNativeVersion": "0.87.1",
+  "projectName": "TemplateProject",
+  "displayName": "TemplateProject",
+  "bundleIdentifier": "com.templateproject",
+  "androidNamespace": "com.templateproject",
+  "urlScheme": "templateproject",
+  "minNodeVersion": "22.11.0"
+}

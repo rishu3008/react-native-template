@@ -1,97 +1,144 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# TemplateProject
 
-# Getting Started
+A production-grade, reusable React Native starter template.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+It provides roughly **90% of the engineering foundation and none of the business
+logic**. A new application should mostly add `src/features/`, not rebuild the
+theme, navigation, API client, storage, auth architecture, error handling,
+logging, testing or CI.
 
-## Step 1: Start Metro
+The engineering rules this template is built under live in
+[AGENTS.md](./AGENTS.md). Read that before contributing.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+---
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+## Baseline
 
-```sh
-# Using npm
-npm start
+|              |                                                                              |
+| ------------ | ---------------------------------------------------------------------------- |
+| React Native | 0.87.1                                                                       |
+| React        | 19.2.3                                                                       |
+| TypeScript   | 6.x, strict                                                                  |
+| Architecture | New Architecture (Fabric + TurboModules)                                     |
+| JS engine    | Hermes                                                                       |
+| Node         | 22.11.0 (see `.nvmrc`)                                                       |
+| Android      | compileSdk 37, targetSdk 36, minSdk 24, Kotlin 2.2.0, Gradle 9.4.1, NDK 27.1 |
+| Java         | 17                                                                           |
+| iOS          | UIScene life cycle, CocoaPods                                                |
 
-# OR using Yarn
-yarn start
-```
+The canonical placeholder identity is `TemplateProject` / `com.templateproject`.
+See AGENTS.md rule 56.1 for why the placeholder is not simply `Template`.
 
-## Step 2: Build and run your app
+---
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+## Getting started
 
-### Android
+```bash
+nvm use            # Node 22.11.0
+npm install
+bundle install     # Ruby gems for CocoaPods
+bundle exec pod install --project-directory=ios
 
-```sh
-# Using npm
+npm start          # Metro
 npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
 npm run ios
-
-# OR using Yarn
-yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+---
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## Scripts
 
-## Step 3: Modify your app
+| Script                                      | Purpose                                           |
+| ------------------------------------------- | ------------------------------------------------- |
+| `npm run android` / `npm run ios`           | Run the app on a device or simulator              |
+| `npm start`                                 | Start Metro                                       |
+| `npm run typecheck`                         | `tsc --noEmit`                                    |
+| `npm run lint` / `lint:fix`                 | ESLint                                            |
+| `npm run format` / `format:check`           | Prettier                                          |
+| `npm test` / `test:watch` / `test:coverage` | Jest                                              |
+| `npm run validate`                          | typecheck + lint + test — run this before pushing |
 
-Now that you have successfully run the app, let's make changes!
+Pre-commit runs `lint-staged` only, so hooks stay fast; `validate` and the
+native builds belong to CI (AGENTS.md rules 40, 54).
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+---
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+## Source structure
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+```text
+src/
+├── app/            # entry, bootstrap, providers, config
+├── components/     # primitives, common, feedback, forms
+├── features/       # business features (screens live here, not globally)
+├── navigation/     # navigators and linking
+├── theme/          # tokens, light/dark themes
+├── services/       # api, auth, storage, permissions, analytics, logging
+├── hooks/
+├── store/
+├── assets/
+├── constants/
+├── types/
+└── utils/
+```
 
-## Congratulations! :tada:
+Business features live under `src/features/`. There is deliberately no global
+`screens/` directory — that does not scale for a large application.
 
-You've successfully run and modified your React Native App. :partying_face:
+---
 
-### Now what?
+## Path aliases
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+```ts
+import { AppButton } from '@components'; // through the barrel
+import { AppButton } from '@components/common/AppButton'; // or directly
+```
 
-# Troubleshooting
+| Alias         | Path             |     | Alias         | Path             |
+| ------------- | ---------------- | --- | ------------- | ---------------- |
+| `@app`        | `src/app`        |     | `@services`   | `src/services`   |
+| `@assets`     | `src/assets`     |     | `@store`      | `src/store`      |
+| `@components` | `src/components` |     | `@theme`      | `src/theme`      |
+| `@constants`  | `src/constants`  |     | `@types`      | `src/types`      |
+| `@features`   | `src/features`   |     | `@utils`      | `src/utils`      |
+| `@hooks`      | `src/hooks`      |     | `@navigation` | `src/navigation` |
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+Aliases are declared in **three places that must agree** — `tsconfig.json`
+(`paths`), `babel.config.js` (`module-resolver`) and `jest.config.js`
+(`moduleNameMapper`). Configuring only the TypeScript half produces code that
+typechecks and then fails to resolve at runtime. Add a new alias to all three.
 
-# Learn More
+---
 
-To learn more about React Native, take a look at the following resources:
+## Architecture enforcement
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Dependency direction (AGENTS.md rule 6) is enforced by ESLint, not by review:
+
+```text
+features → navigation → components → theme → utils → constants → types
+```
+
+Reusable layers never reach upward into business features. A component that
+imports a feature, or a util that imports navigation, fails `npm run lint`.
+The policy is the `LAYER_POLICY` map in `eslint.config.js`.
+
+---
+
+## Known issues
+
+- **ESLint is pinned to 9.39.5.** `@react-native/eslint-config@0.87.1` peers on
+  `^8 || ^9`, so ESLint 10 is out of range. Revisit when it supports 10.
+- **`eslint-plugin-ft-flow` is stripped** from the React Native ESLint config.
+  It calls `context.getAllComments()`, removed in ESLint 9, and throws on load.
+  This template is TypeScript-only, so Flow linting has nothing to check.
+- **React Native 0.87.1 does not adopt the UIScene life cycle.** Every stock
+  0.87.1 app fails to launch on iOS 26. This template adopts it in
+  `ios/TemplateProject/SceneDelegate.swift`; the fix is worth carrying forward
+  through RN upgrades until React Native ships its own scene support.
+
+---
+
+## Status
+
+Phase 1 (foundation) is complete. Theme, component library, navigation, data
+layer and template packaging follow. See AGENTS.md rule 69 for how the template
+is distributed and rule 57 for the release process.
