@@ -134,6 +134,13 @@ module.exports = [
       // Rule 22 -- centralized logger, no uncontrolled console.
       'no-console': 'error',
 
+      // Rule 9 -- no hardcoded colours outside the theme layer. This, not
+      // no-inline-styles, is the rule that enforces token use: a themed
+      // design system computes styles from the theme at runtime, so dynamic
+      // style objects are correct rather than a smell.
+      'react-native/no-color-literals': 'error',
+      'react-native/no-inline-styles': 'off',
+
       // Rule 43 -- large files are a warning sign, not an error.
       'max-lines': [
         'warn',
@@ -168,6 +175,13 @@ module.exports = [
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
     },
+  },
+
+  // The theme layer is where raw colour values are declared, so the literal
+  // ban cannot apply to itself.
+  {
+    files: ['src/theme/**/*.{ts,tsx}'],
+    rules: { 'react-native/no-color-literals': 'off' },
   },
 
   // Config and tooling files run in Node and are exempt from app rules.

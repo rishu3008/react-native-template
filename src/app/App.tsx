@@ -1,45 +1,47 @@
+import { StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { PlaygroundScreen } from '@features';
+import { useTheme } from '@theme';
+
+import { ThemeProvider } from './providers';
+
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
+ * Renders the status bar against the active theme and hosts the app content.
  *
- * @format
+ * Separate from App because it must sit inside ThemeProvider to read the
+ * theme -- a provider cannot consume its own context.
  */
+const AppContent = () => {
+  const { mode, isHydrated } = useTheme();
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
-
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
+  // Nothing is rendered until the stored theme preference has been read.
+  // Rendering first would show one frame of the wrong theme to anyone who
+  // chose a non-system preference. The native splash screen stays up instead.
+  if (!isHydrated) {
+    return null;
+  }
 
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
+    <>
+      {/*
+        No backgroundColor: React Native 0.87 removed it, and under
+        edge-to-edge the status bar is transparent over app content anyway.
+      */}
+      <StatusBar
+        barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
       />
-    </View>
+      <PlaygroundScreen />
+    </>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
+const App = () => (
+  <SafeAreaProvider>
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  </SafeAreaProvider>
+);
 
 export default App;

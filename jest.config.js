@@ -1,6 +1,6 @@
 module.exports = {
   preset: '@react-native/jest-preset',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.tsx'],
   moduleNameMapper: {
     // Test half of the path aliases. See babel.config.js.
     '^@app$': '<rootDir>/src/app',

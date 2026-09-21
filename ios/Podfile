@@ -30,5 +30,23 @@ target 'TemplateProject' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Some pods -- and in particular the resource-bundle targets CocoaPods
+    # generates for them -- ship a deployment target far below what the
+    # current Xcode accepts. SDWebImage, pulled in by FastImage, declares 9.0
+    # against a supported floor of 15.0, which fails the build outright.
+    #
+    # Raising every pod target to the React Native minimum keeps this in step
+    # with the app target instead of pinning a number that rots (AGENTS.md 35).
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        deployment_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+
+        if deployment_target.nil? ||
+           Gem::Version.new(deployment_target) < Gem::Version.new(min_ios_version_supported)
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios_version_supported
+        end
+      end
+    end
   end
 end

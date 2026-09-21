@@ -123,6 +123,18 @@ The policy is the `LAYER_POLICY` map in `eslint.config.js`.
 
 ---
 
+## Dependencies
+
+Every native dependency is exact-pinned (AGENTS.md 3.1) and sits behind an
+adapter (rule 48), so application code never imports the vendor directly.
+
+| Package                                     | Used by          | Why this one                                                                                                                                                                          |
+| ------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `react-native-safe-area-context`            | `AppScreen`      | Standard safe-area source                                                                                                                                                             |
+| `@react-native-async-storage/async-storage` | `storageService` | Mature, one native module. MMKV was considered and rejected: synchronous reads are nice, but it pulls in `react-native-nitro-modules` for a benefit the hydration gate already solves |
+| `react-native-svg` (+ transformer)          | `AppIcon`        | Icons as scalable components rather than per-density rasters                                                                                                                          |
+| `@d11/react-native-fast-image`              | `AppImage`       | Disk/memory caching. The original `react-native-fast-image` was last published in 2022 and has no New Architecture support, so the maintained fork is used                            |
+
 ## Known issues
 
 - **ESLint is pinned to 9.39.5.** `@react-native/eslint-config@0.87.1` peers on
@@ -130,6 +142,10 @@ The policy is the `LAYER_POLICY` map in `eslint.config.js`.
 - **`eslint-plugin-ft-flow` is stripped** from the React Native ESLint config.
   It calls `context.getAllComments()`, removed in ESLint 9, and throws on load.
   This template is TypeScript-only, so Flow linting has nothing to check.
+- **`@d11/react-native-fast-image` types reference `FlexStyle`**, which React
+  Native 0.87 no longer exports. `skipLibCheck` hides the unresolved reference,
+  leaving its `ImageStyle` with no layout properties at all. `AppImage` exposes
+  React Native's `ImageStyle` and casts once at the vendor boundary.
 - **React Native 0.87.1 does not adopt the UIScene life cycle.** Every stock
   0.87.1 app fails to launch on iOS 26. This template adopts it in
   `ios/TemplateProject/SceneDelegate.swift`; the fix is worth carrying forward
@@ -137,8 +153,31 @@ The policy is the `LAYER_POLICY` map in `eslint.config.js`.
 
 ---
 
+## Design system
+
+Themes are `light` and `dark`, with a `system` preference that follows device
+appearance. The choice is persisted, and nothing renders until it has been read
+back, so a cold start never flashes the wrong theme.
+
+Components read tokens through `useTheme()`. Never call `useColorScheme()` in a
+component -- dark-mode detection happens once, in the provider.
+
+```tsx
+const { theme, mode, preference, setPreference } = useTheme();
+```
+
+Sizing uses fixed dp tokens rather than screen-scaled values. dp is already
+density-independent, and linearly scaling every value turns a tablet layout
+into a magnified phone layout. `useBreakpoint()` changes _layout_ at width
+thresholds; it does not grow the type scale.
+
+`react-native/no-color-literals` is an error outside `src/theme`, which is what
+actually enforces token use. `no-inline-styles` is off: a themed system
+computes styles from the theme at runtime, so dynamic style objects are correct
+rather than a smell.
+
 ## Status
 
-Phase 1 (foundation) is complete. Theme, component library, navigation, data
-layer and template packaging follow. See AGENTS.md rule 69 for how the template
+Phases 1 (foundation) and 2 (design system) are complete. Overlays and feedback
+states, navigation, the data layer and template packaging follow. See AGENTS.md rule 69 for how the template
 is distributed and rule 57 for the release process.
