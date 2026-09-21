@@ -30,5 +30,9 @@ module.exports = {
         },
       },
     ],
+    // Reanimated 4 moved its Babel plugin into react-native-worklets. It
+    // rewrites worklet functions, so it must stay last in the plugin list --
+    // anything appended after it will not be processed.
+    'react-native-worklets/plugin',
   ],
 };

@@ -1,6 +1,9 @@
-import { StatusBar } from 'react-native';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { StatusBar, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ToastProvider } from '@components';
 import { PlaygroundScreen } from '@features';
 import { useTheme } from '@theme';
 
@@ -37,11 +40,25 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <SafeAreaProvider>
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
-  </SafeAreaProvider>
+  // GestureHandlerRootView must wrap the whole tree, and must have flex: 1 --
+  // without the flex it collapses to zero height and nothing renders.
+  <GestureHandlerRootView style={styles.root}>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        {/* BottomSheetModalProvider hosts the portal AppBottomSheet renders
+            into, which is what keeps sheets from being clipped by layout. */}
+        <BottomSheetModalProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </BottomSheetModalProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  </GestureHandlerRootView>
 );
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
 
 export default App;

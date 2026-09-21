@@ -146,6 +146,11 @@ adapter (rule 48), so application code never imports the vendor directly.
   Native 0.87 no longer exports. `skipLibCheck` hides the unresolved reference,
   leaving its `ImageStyle` with no layout properties at all. `AppImage` exposes
   React Native's `ImageStyle` and casts once at the vendor boundary.
+- **Reanimated cannot be loaded under Jest.** Its `.native` entry points need
+  a worklet runtime that does not exist there, and resolving away from them
+  loads its web build, which requires `react-native-web`. It is mocked in
+  `jest.setup.tsx` instead, so animations themselves are not under test --
+  only that animated components render and behave correctly around them.
 - **React Native 0.87.1 does not adopt the UIScene life cycle.** Every stock
   0.87.1 app fails to launch on iOS 26. This template adopts it in
   `ios/TemplateProject/SceneDelegate.swift`; the fix is worth carrying forward
@@ -176,8 +181,48 @@ actually enforces token use. `no-inline-styles` is off: a themed system
 computes styles from the theme at runtime, so dynamic style objects are correct
 rather than a smell.
 
+## Overlays and feedback
+
+`AppModal` wraps React Native's own Modal, which already handles the Android
+hardware back button and native focus containment. `AppBottomSheet` adapts
+`@gorhom/bottom-sheet`, using its portal-rendered modal variant so sheets
+cannot be clipped by layout; it needs `BottomSheetModalProvider`, which lives
+in the app providers.
+
+Toasts are imperative, because they are raised from event handlers and
+services rather than rendered inline:
+
+```tsx
+const toast = useToast();
+toast.show({ message: 'Saved', tone: 'success' });
+```
+
+One toast shows at a time. Stacking buries the newest message and competes
+with whatever the user is doing.
+
+`OfflineBanner` takes a `visible` prop rather than subscribing to connectivity
+itself: network detection is a service concern, and rule 63 forbids a reusable
+component quietly owning a subscription. The hook that drives it arrives with
+the networking layer.
+
+## Version coupling
+
+`react-native-reanimated` and `react-native-worklets` are a matched pair --
+worklets is reanimated's runtime, and reanimated declares an exact minor peer
+on it. Upgrade both together:
+
+| reanimated | worklets |
+| ---------- | -------- |
+| 4.6.x      | 0.12.x   |
+| 4.7.x      | 0.13.x   |
+
 ## Status
 
-Phases 1 (foundation) and 2 (design system) are complete. Overlays and feedback
-states, navigation, the data layer and template packaging follow. See AGENTS.md rule 69 for how the template
+Phases 1 (foundation), 2 (design system) and 3 (overlays and feedback) are
+complete. Navigation, the data layer and template packaging follow.
+
+The 16 KB page-size check required by rule 34 was run against the debug APK
+after the animation stack landed: all 20 arm64 libraries, including
+`libreanimated.so`, `libworklets.so` and `libgesturehandler.so`, have every
+PT_LOAD segment aligned to at least 16384. See AGENTS.md rule 69 for how the template
 is distributed and rule 57 for the release process.

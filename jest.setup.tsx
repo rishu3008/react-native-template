@@ -59,4 +59,81 @@ jest.mock('@d11/react-native-fast-image', () => {
   return { __esModule: true, default: FastImage };
 });
 
+// Reanimated is mocked rather than loaded.
+//
+// Its `.native` entry points need a worklet runtime that does not exist under
+// Jest, and resolving away from them loads its web build, which requires
+// react-native-web. A double covering the handful of APIs this template uses
+// is both smaller and more predictable than either.
+//
+// Animations are therefore not under test. What is under test is that
+// animated components render, and their behaviour around the animation.
+jest.mock('react-native-reanimated', () => {
+  const { View, Text, ScrollView } = require('react-native');
+
+  const passthrough = (value: unknown) => value;
+  // gesture-handler reads this off the default export, not the namespace.
+  const createAnimatedComponent = (Component: unknown) => Component;
+
+  return {
+    __esModule: true,
+    default: { View, Text, ScrollView, createAnimatedComponent },
+    useSharedValue: (initial: unknown) => ({ value: initial }),
+    useAnimatedStyle: (factory: () => object) => factory(),
+    useDerivedValue: (factory: () => unknown) => ({ value: factory() }),
+    withTiming: passthrough,
+    withSpring: passthrough,
+    withRepeat: passthrough,
+    withDelay: (_delay: number, value: unknown) => value,
+    runOnJS: (fn: unknown) => fn,
+    runOnUI: (fn: unknown) => fn,
+    FadeIn: {},
+    FadeOut: {},
+    FadeInDown: {},
+    FadeOutDown: {},
+    Easing: { linear: passthrough, ease: passthrough },
+    createAnimatedComponent,
+  };
+});
+
+// The bottom sheet is driven by gestures and worklets. A minimal double keeps
+// screens that mount AppBottomSheet renderable without simulating any of it;
+// the adapter's own contract is tested directly instead.
+jest.mock('@gorhom/bottom-sheet', () => {
+  const { View } = require('react-native');
+  const React = require('react');
+
+  // present/dismiss are shared spies so tests can assert the adapter drives
+  // the sheet correctly across open/close/reopen cycles.
+  const present = jest.fn();
+  const dismiss = jest.fn();
+
+  const BottomSheetModal = React.forwardRef(
+    (
+      props: { children?: React.ReactNode },
+      ref: React.Ref<{ present: () => void; dismiss: () => void }>,
+    ) => {
+      React.useImperativeHandle(ref, () => ({ present, dismiss }));
+
+      return <View>{props.children}</View>;
+    },
+  );
+
+  return {
+    __esModule: true,
+    default: View,
+    BottomSheetModal,
+    BottomSheetModalProvider: ({
+      children,
+    }: {
+      children?: React.ReactNode;
+    }) => <View>{children}</View>,
+    BottomSheetView: View,
+    BottomSheetScrollView: View,
+    BottomSheetBackdrop: View,
+    // Exposed for assertions; not part of the library's real surface.
+    __sheetSpies: { present, dismiss },
+  };
+});
+
 export {};

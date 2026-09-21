@@ -1,7 +1,21 @@
 module.exports = {
   preset: '@react-native/jest-preset',
+  setupFiles: ['react-native-gesture-handler/jestSetup'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.tsx'],
+  // React Native's preset only whitelists react-native packages for
+  // transformation. These ship untransformed ESM, so Jest has to compile them
+  // too or it fails on the first `import` statement inside node_modules.
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?' +
+      '|react-native-gesture-handler|react-native-reanimated' +
+      '|react-native-worklets|@gorhom/bottom-sheet' +
+      '|react-native-safe-area-context|react-native-svg)/)',
+  ],
   moduleNameMapper: {
+    // Jest does not run Metro, so the svg transformer configured in
+    // metro.config.js does not apply here. Without this, every .svg import is
+    // undefined and rendering it throws.
+    '\\.svg$': '<rootDir>/__mocks__/svgMock.tsx',
     // Test half of the path aliases. See babel.config.js.
     '^@app$': '<rootDir>/src/app',
     '^@app/(.*)$': '<rootDir>/src/app/$1',

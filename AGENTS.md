@@ -1638,6 +1638,69 @@ either way, so it is the product; the rest is delivery.
 
 ---
 
+## 70. Re-analyse Before Reporting
+
+A result is not a finding until it has been checked a second time, by a
+different means than the one that produced it.
+
+Rule 53 says never claim a check passed unless it actually passed. This rule
+covers the harder case: the check appeared to pass, and was wrong.
+
+### 70.1 Verify the verification
+
+A clean result can come from a broken probe. Before reporting it, ask what
+would make this probe lie.
+
+Real examples from this repository:
+
+- `grep -c` returns exit code 1 when it finds zero matches, which turned a
+  successful iOS build into a reported failure.
+- A colour probe searching for the toast background also matched the secondary
+  button, which uses the same token, and reported a bug that did not exist.
+- Grepping test files for a component's name reported fifteen components as
+  untested when they were covered transitively.
+- A build was reported as passing from an APK timestamped before the change.
+
+Check the timestamp, check the exit code directly rather than through a pipe,
+and confirm that the thing being matched can only be the thing being looked
+for.
+
+### 70.2 A guard that cannot catch the regression is not a guard
+
+When adding a test for a bug, run it against the broken code first and watch it
+fail. A test written after the fix usually passes for the wrong reason.
+
+The dependency-direction rule in Rule 6 sat in the config reporting nothing at
+all, because dependencies it could not resolve were silently classified as
+unknown. It looked configured. It enforced nothing.
+
+### 70.3 Green tests are not a working screen
+
+Tests assert what they were told to assert. Every component test passed while
+the main screen could not scroll, because nothing asserted that it could.
+
+Before a UI change is reported as done, it is run. For layout, alignment and
+overlay behaviour, that means looking at it on a device or simulator, not
+inferring it from a passing suite.
+
+### 70.4 Separate your own noise from the defect
+
+Debugging changes the system. A temporary hook added to reproduce a bug
+produced "rendered fewer hooks than expected" errors that looked like the bug
+and were not.
+
+When an error appears after a debugging edit, rule it in or out before
+reporting it. Revert the instrumentation and reproduce on clean code.
+
+### 70.5 State what was verified and how
+
+Reports distinguish what was observed from what was inferred. "Tests pass and
+it renders correctly on the simulator" and "tests pass; not verified on
+device" are different claims, and the second is worth making explicitly rather
+than leaving the reader to assume the first.
+
+---
+
 # Core Principle
 
 This template is infrastructure.
