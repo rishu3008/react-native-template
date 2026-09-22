@@ -4,7 +4,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@components';
-import { PlaygroundScreen } from '@features';
+import { RootNavigator } from '@navigation';
+import { SessionProvider } from '@store';
 import { useTheme } from '@theme';
 
 import { ThemeProvider } from './providers';
@@ -34,7 +35,7 @@ const AppContent = () => {
       <StatusBar
         barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
       />
-      <PlaygroundScreen />
+      <RootNavigator />
     </>
   );
 };
@@ -48,9 +49,13 @@ const App = () => (
         {/* BottomSheetModalProvider hosts the portal AppBottomSheet renders
             into, which is what keeps sheets from being clipped by layout. */}
         <BottomSheetModalProvider>
-          <ToastProvider>
-            <AppContent />
-          </ToastProvider>
+          {/* Session sits above Toast so a sign-out can raise a toast on the
+              way out, and above the navigator, which reads session status. */}
+          <SessionProvider>
+            <ToastProvider>
+              <AppContent />
+            </ToastProvider>
+          </SessionProvider>
         </BottomSheetModalProvider>
       </ThemeProvider>
     </SafeAreaProvider>

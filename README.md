@@ -205,6 +205,47 @@ itself: network detection is a service concern, and rule 63 forbids a reusable
 component quietly owning a subscription. The hook that drives it arrives with
 the networking layer.
 
+## Navigation
+
+The tree is mounted from session state, not navigated between:
+
+```text
+RootNavigator
+├── status === 'restoring'      -> FullScreenLoader
+├── status === 'authenticated'  -> AppNavigator  (tabs + detail stack)
+└── otherwise                   -> AuthNavigator (sign-in)
+```
+
+Mounting conditionally means a signed-out user has no back route into the app,
+and signing out unmounts the authenticated tree along with any state it held.
+Navigating from App to Auth instead would leave the previous user's screens
+alive underneath.
+
+`restoring` is deliberately distinct from `unauthenticated`: at launch the app
+does not yet know which it is, and treating unknown as signed-out flashes the
+sign-in screen at every returning user.
+
+Route params are typed in `src/navigation/types.ts`, and the global
+`ReactNavigation.RootParamList` declaration makes `useNavigation()` typed
+everywhere without per-call generics. Pass identifiers, never records:
+navigation state is serialised for deep links and restoration, so an object in
+a param becomes stale data that survives a reload.
+
+For callers that are not components -- notification handlers, deep-link
+routing, an interceptor bouncing the user to sign-in -- use `navigationRef`:
+
+```ts
+import { dispatchWhenReady } from '@navigation';
+
+// Returns false if the container is not mounted yet, which happens on a cold
+// start. Queue and replay rather than assuming it succeeded.
+const delivered = dispatchWhenReady(action);
+```
+
+The screens under `src/features/auth`, `home` and `settings` are structural
+placeholders. They demonstrate the navigation shape; consumers replace the
+bodies and keep the wiring.
+
 ## Version coupling
 
 `react-native-reanimated` and `react-native-worklets` are a matched pair --
@@ -218,8 +259,9 @@ on it. Upgrade both together:
 
 ## Status
 
-Phases 1 (foundation), 2 (design system) and 3 (overlays and feedback) are
-complete. Navigation, the data layer and template packaging follow.
+Phases 1 (foundation), 2 (design system), 3 (overlays and feedback) and 4
+(navigation) are complete. The data layer, cross-cutting concerns and template
+packaging follow.
 
 The 16 KB page-size check required by rule 34 was run against the debug APK
 after the animation stack landed: all 20 arm64 libraries, including

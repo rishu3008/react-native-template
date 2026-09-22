@@ -1862,6 +1862,53 @@ PODS:
     - ReactNativeDependencies
     - RNWorklets
     - Yoga
+  - RNScreens (4.28.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-RCTImage
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNScreens/common (= 4.28.0)
+    - Yoga
+  - RNScreens/common (4.28.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-RCTImage
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNSVG (15.15.5):
     - hermes-engine
     - RCTRequired
@@ -2084,6 +2131,7 @@ DEPENDENCIES:
   - "RNFastImage (from `../node_modules/@d11/react-native-fast-image`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
+  - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
   - SocketRocket (from `build/rndeps-facades/SocketRocket`)
@@ -2277,6 +2325,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
+  RNScreens:
+    :path: "../node_modules/react-native-screens"
   RNSVG:
     :path: "../node_modules/react-native-svg"
   RNWorklets:
@@ -2378,6 +2428,7 @@ SPEC CHECKSUMS:
   RNFastImage: 1a8af4da100975f467b0f2c95d4162a8e5fb692d
   RNGestureHandler: eb4c031b22e791851742d29384ddcad30f3ee49d
   RNReanimated: a40a23cfa56063c9b0c7af8794c847c0ddf8a99c
+  RNScreens: 038dc998fe1ab34778d9e8f4a33318a6c7a5bde8
   RNSVG: 6c9bcbf53822153be6f6c1484f6b0b57c0040d21
   RNWorklets: e00d9fe0f91ef81e6056248566c84501506ad539
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf

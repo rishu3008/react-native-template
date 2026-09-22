@@ -5,6 +5,7 @@
 export const storageKeys = {
   themePreference: '@template/theme-preference',
   onboardingCompleted: '@template/onboarding-completed',
+  session: '@template/session',
 } as const;
 
 export type StorageKey = (typeof storageKeys)[keyof typeof storageKeys];

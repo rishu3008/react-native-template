@@ -9,7 +9,9 @@ module.exports = {
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?' +
       '|react-native-gesture-handler|react-native-reanimated' +
       '|react-native-worklets|@gorhom/bottom-sheet' +
-      '|react-native-safe-area-context|react-native-svg)/)',
+      '|react-native-safe-area-context|react-native-svg' +
+      '|react-native-screens|@react-navigation' +
+      '|react-freeze|nanoid|use-latest-callback)/)',
   ],
   moduleNameMapper: {
     // Jest does not run Metro, so the svg transformer configured in
