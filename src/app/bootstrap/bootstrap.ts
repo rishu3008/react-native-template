@@ -2,7 +2,9 @@ import { appConfig } from '@constants';
 import {
   apiClient,
   authService,
+  initI18n,
   installAuthInterceptors,
+  logger,
   mockAuthService,
   sessionManager,
 } from '@services';
@@ -30,6 +32,15 @@ export const bootstrap = (): void => {
     appConfig.useMockAuth ? mockAuthService : authService,
   );
   teardown = installAuthInterceptors(apiClient);
+
+  // Before the first render: a screen that mounts with translations
+  // uninitialised shows raw keys for a frame.
+  initI18n();
+
+  logger.info('Bootstrap complete', {
+    environment: appConfig.environment,
+    mockAuth: appConfig.useMockAuth,
+  });
 };
 
 export const teardownBootstrap = (): void => {

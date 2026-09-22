@@ -1,4 +1,5 @@
 export { AppBottomSheet, type AppBottomSheetProps } from './AppBottomSheet';
+export { AppErrorBoundary } from './AppErrorBoundary';
 export { AppModal, type AppModalProps } from './AppModal';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { ErrorState, type ErrorStateProps } from './ErrorState';

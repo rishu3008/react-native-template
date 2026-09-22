@@ -33,8 +33,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>TemplateProject uses the camera so you can take photos. Replace this string, or remove this key if the app does not use the camera.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>TemplateProject uses your location while the app is open. Replace this string, or remove this key if the app does not use location.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TemplateProject uses the microphone to record audio. Replace this string, or remove this key if the app does not record audio.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TemplateProject accesses your photo library so you can choose images. Replace this string, or remove this key if the app does not use photos.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

@@ -168,4 +168,17 @@ jest.mock('react-native-keychain', () => {
   };
 });
 
+// react-native-permissions ships its own mock, which returns DENIED for
+// everything by default. Tests that need a different outcome spy on the
+// service rather than reaching into this.
+jest.mock('react-native-permissions', () =>
+  require('react-native-permissions/mock'),
+);
+
+// NetInfo ships a mock whose listener never fires, so the hook stays in its
+// "not yet known" state unless a test drives it.
+jest.mock('@react-native-community/netinfo', () =>
+  require('@react-native-community/netinfo/jest/netinfo-mock.js'),
+);
+
 export {};

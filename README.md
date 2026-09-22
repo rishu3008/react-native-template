@@ -288,6 +288,71 @@ uninstall, and purges the keychain when it is missing. Android wipes app data
 on uninstall, so it is a no-op there -- but the check is unconditional, because
 a platform branch here would be a platform-specific security difference.
 
+## Observability
+
+`logger` is the only place permitted to call `console`, which is why
+`no-console` is disabled there and nowhere else. Levels default to verbose in
+development and `warn` in production.
+
+**Context is redacted before it reaches a transport**, not inside each one --
+transports are where logs leave the app. Keys matching `password`, `token`,
+`authorization`, `card` and similar are replaced, matched case-insensitively
+on substrings because the same secret arrives as `token`, `accessToken` and
+`auth_token` depending on the caller.
+
+```ts
+logger.info('sign in attempt', { email, password: 'hunter2' });
+// -> { email: 'a@b.com', password: '[redacted]' }
+```
+
+`crashReporter` and `analytics` are contracts with no vendor behind them. Both
+route to the logger until one is registered, so wiring is verifiable before an
+SDK exists and the absence of a vendor is never silent.
+
+`AppErrorBoundary` catches render errors. It takes an `onError` callback
+rather than importing the logger, because rule 6 keeps components out of
+services and rule 63 forbids a component quietly calling a crash reporter --
+`AppErrorBoundaryProvider` supplies the wiring. Note that it catches render,
+lifecycle and constructor errors only; event handlers and async code never
+reach React's boundary machinery.
+
+## Permissions
+
+Feature code names a capability; the mapping to `NSCameraUsageDescription`,
+`android.permission.CAMERA` and the Android 13 media split stays inside the
+service.
+
+`blocked` is deliberately distinct from `denied`: denied can be asked again,
+blocked cannot and must send the user to Settings. Collapsing them produces a
+button that appears to do nothing.
+
+**Two native lists must stay in step with this service**, and both ship with
+placeholders you are expected to prune:
+
+- `setup_permissions([...])` in `ios/Podfile` — it rewrites
+  `RNPermissions.podspec` in place, and a permission missing from that list
+  returns `unavailable` at runtime with no other symptom.
+- `uses-permission` entries in `AndroidManifest.xml`.
+
+Delete anything the app does not use. App Review rejects permissions declared
+without a product reason, and the Info.plist strings shipped here are
+placeholders that say so.
+
+## Localisation and RTL
+
+`en` and `ar` ship. Arabic exists solely so a right-to-left locale can
+actually be selected -- an RTL-safe architecture that has never rendered RTL
+is an untested claim.
+
+Layout direction changes take effect only after a restart. That is a platform
+constraint: React Native reads direction when the view hierarchy is created.
+`changeLocale` returns whether a restart is needed rather than deciding for
+you.
+
+Dates go through `@utils/date`, built on Intl -- Hermes ships full ICU, so the
+template adds no date library. Invalid input returns an empty string rather
+than rendering "Invalid Date" into the UI.
+
 ## Version coupling
 
 `react-native-reanimated` and `react-native-worklets` are a matched pair --
@@ -302,8 +367,8 @@ on it. Upgrade both together:
 ## Status
 
 Phases 1 (foundation), 2 (design system), 3 (overlays and feedback), 4
-(navigation) and 5 (data layer) are complete. Cross-cutting concerns, the
-playground/CI pass and template packaging follow.
+(navigation), 5 (data layer) and most of 6 (cross-cutting) are complete.
+Environment variants, the playground/CI pass and template packaging follow.
 
 The 16 KB page-size check required by rule 34 was run against the debug APK
 after the animation stack landed: all 20 arm64 libraries, including

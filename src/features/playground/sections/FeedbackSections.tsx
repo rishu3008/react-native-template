@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { useNetworkStatus } from '@hooks';
+
 import {
   AppBottomSheet,
   AppButton,
@@ -20,7 +22,10 @@ import {
 export const OverlaysSection = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSheetVisible, setIsSheetVisible] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
+  const [simulateOffline, setSimulateOffline] = useState(false);
+  // Real connectivity, or the simulation toggle. The banner takes `visible`
+  // and never subscribes itself (rule 63).
+  const { isOffline } = useNetworkStatus();
   const toast = useToast();
 
   return (
@@ -63,10 +68,10 @@ export const OverlaysSection = () => {
 
       <AppSwitch
         label="Simulate offline"
-        onValueChange={setIsOffline}
-        value={isOffline}
+        onValueChange={setSimulateOffline}
+        value={simulateOffline}
       />
-      <OfflineBanner visible={isOffline} />
+      <OfflineBanner visible={isOffline || simulateOffline} />
 
       <AppModal
         onClose={() => setIsModalVisible(false)}

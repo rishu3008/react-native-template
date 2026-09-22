@@ -8,6 +8,24 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# react-native-permissions compiles only the handlers listed here. A
+# permission that is abstracted in src/services/permissions but missing from
+# this list returns "unavailable" at runtime with no other symptom.
+#
+# Keep this list and the Info.plist usage descriptions in step, and delete
+# both for anything the app does not actually use: App Review rejects
+# permissions declared without a product reason (AGENTS.md 35).
+permissions_path = File.join(__dir__, '..', 'node_modules', 'react-native-permissions', 'scripts')
+require File.join(permissions_path, 'setup')
+
+setup_permissions([
+  'Camera',
+  'LocationWhenInUse',
+  'Microphone',
+  'Notifications',
+  'PhotoLibrary',
+])
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green

@@ -9,7 +9,11 @@ import { RootNavigator } from '@navigation';
 import { SessionProvider } from '@store';
 import { useTheme } from '@theme';
 
-import { QueryProvider, ThemeProvider } from './providers';
+import {
+  AppErrorBoundaryProvider,
+  QueryProvider,
+  ThemeProvider,
+} from './providers';
 
 /**
  * Renders the status bar against the active theme and hosts the app content.
@@ -49,21 +53,25 @@ const App = () => (
   // GestureHandlerRootView must wrap the whole tree, and must have flex: 1 --
   // without the flex it collapses to zero height and nothing renders.
   <GestureHandlerRootView style={styles.root}>
+    {/* Outermost inside the root view: a render error anywhere below still
+        has a themed fallback, because ThemeProvider sits inside it. */}
     <SafeAreaProvider>
       <ThemeProvider>
-        {/* BottomSheetModalProvider hosts the portal AppBottomSheet renders
+        <AppErrorBoundaryProvider>
+          {/* BottomSheetModalProvider hosts the portal AppBottomSheet renders
             into, which is what keeps sheets from being clipped by layout. */}
-        <QueryProvider>
-          <BottomSheetModalProvider>
-            {/* Session sits above Toast so a sign-out can raise a toast on the
+          <QueryProvider>
+            <BottomSheetModalProvider>
+              {/* Session sits above Toast so a sign-out can raise a toast on the
               way out, and above the navigator, which reads session status. */}
-            <SessionProvider>
-              <ToastProvider>
-                <AppContent />
-              </ToastProvider>
-            </SessionProvider>
-          </BottomSheetModalProvider>
-        </QueryProvider>
+              <SessionProvider>
+                <ToastProvider>
+                  <AppContent />
+                </ToastProvider>
+              </SessionProvider>
+            </BottomSheetModalProvider>
+          </QueryProvider>
+        </AppErrorBoundaryProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   </GestureHandlerRootView>
