@@ -3,6 +3,25 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 /**
+ * react-native-config: reads the .env file named by the active product
+ * flavour and injects the values into BuildConfig and resources.
+ *
+ * `envConfigFiles` maps a build variant to its file. The keys are matched
+ * against the lowercased variant name, so `stagingDebug` matches the
+ * `stagingdebug` key.
+ */
+project.ext.envConfigFiles = [
+    developmentdebug  : ".env.development",
+    developmentrelease: ".env.development",
+    stagingdebug      : ".env.staging",
+    stagingrelease    : ".env.staging",
+    productiondebug   : ".env.production",
+    productionrelease : ".env.production",
+]
+
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+
+/**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
@@ -85,6 +104,31 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    /**
+     * One dimension, three flavours. Each gets its own applicationId suffix
+     * and app name, so development, staging and production installs coexist
+     * on one device -- without that, testing a staging build means
+     * uninstalling production (brief section 37).
+     */
+    flavorDimensions += "environment"
+
+    productFlavors {
+        development {
+            dimension "environment"
+            applicationIdSuffix ".dev"
+            resValue "string", "app_name", "TemplateProject Dev"
+        }
+        staging {
+            dimension "environment"
+            applicationIdSuffix ".staging"
+            resValue "string", "app_name", "TemplateProject Staging"
+        }
+        production {
+            dimension "environment"
+            resValue "string", "app_name", "TemplateProject"
+        }
+    }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')

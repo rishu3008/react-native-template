@@ -73,3 +73,12 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Environment
+#
+# The per-variant files are committed on purpose: they hold build
+# configuration, not secrets (AGENTS.md 24). .env is generated from one of
+# them at build time, and .env.local is for personal overrides.
+.env
+.env.local
+*.env.local

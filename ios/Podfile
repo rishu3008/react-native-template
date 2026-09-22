@@ -8,6 +8,16 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# CocoaPods only recognises "Debug" and "Release" by name; every other
+# configuration defaults to :release. That is not cosmetic -- React Native
+# compiles out the dev server for release configurations, so a staging build
+# would launch and immediately die with "No script URL provided".
+project 'TemplateProject.xcodeproj',
+        'Debug' => :debug,
+        'Release' => :release,
+        'Debug.Staging' => :debug,
+        'Release.Staging' => :release
+
 # react-native-permissions compiles only the handlers listed here. A
 # permission that is abstracted in src/services/permissions but missing from
 # this list returns "unavailable" at runtime with no other symptom.
@@ -31,6 +41,16 @@ if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
   use_frameworks! :linkage => linkage.to_sym
 end
+
+# react-native-config maps each Xcode configuration to a .env file. A
+# configuration missing from this hash silently falls back to `.env`, which is
+# how a staging build ends up pointing at development (brief section 37).
+ENVFILES = {
+  'Debug'           => '$(PODS_ROOT)/../../.env.development',
+  'Release'         => '$(PODS_ROOT)/../../.env.production',
+  'Debug.Staging'   => '$(PODS_ROOT)/../../.env.staging',
+  'Release.Staging' => '$(PODS_ROOT)/../../.env.staging',
+}
 
 target 'TemplateProject' do
   config = use_native_modules!
@@ -56,6 +76,14 @@ target 'TemplateProject' do
     #
     # Raising every pod target to the React Native minimum keeps this in step
     # with the app target instead of pinning a number that rots (AGENTS.md 35).
+    # Point each configuration at its environment file.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        envfile = ENVFILES[config.name]
+        config.build_settings['ENVFILE'] = envfile if envfile
+      end
+    end
+
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         deployment_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']

@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">TemplateProject</string>
+    <!--
+      app_name is supplied per flavour by resValue in build.gradle, so that
+      development, staging and production installs are distinguishable on a
+      device. Declaring it here as well is a duplicate-resource build error.
+    -->
 </resources>

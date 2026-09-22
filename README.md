@@ -353,6 +353,47 @@ Dates go through `@utils/date`, built on Intl -- Hermes ships full ICU, so the
 template adds no date library. Invalid input returns an empty string rather
 than rendering "Invalid Date" into the UI.
 
+## Environments and build variants
+
+Three environments, each with a committed `.env` file. Those files hold build
+configuration, not secrets -- anything compiled into a mobile binary is
+extractable (rule 23). `.env` itself is generated per build and gitignored.
+
+| Variant     | Android task                | iOS configuration | Identity                                                |
+| ----------- | --------------------------- | ----------------- | ------------------------------------------------------- |
+| development | `assembleDevelopmentDebug`  | `Debug`           | `com.templateproject.dev` / TemplateProject Dev         |
+| staging     | `assembleStagingDebug`      | `Debug.Staging`   | `com.templateproject.staging` / TemplateProject Staging |
+| production  | `assembleProductionRelease` | `Release`         | `com.templateproject` / TemplateProject                 |
+
+Distinct identifiers mean the variants install side by side, so testing
+staging does not mean uninstalling production and losing its data.
+
+Values are read through `appConfig`, never `Config` directly: everything
+crosses the bridge as a string, and an unrecognised environment resolves to
+development rather than being trusted as production.
+
+### Two iOS traps worth knowing
+
+**Do not vary `PRODUCT_NAME` per configuration.** It feeds
+`PRODUCT_MODULE_NAME`, which is the Swift module name that
+`UISceneDelegateClassName` resolves against. Changing it renames the module,
+the scene delegate can no longer be found, and the app launches and dies with
+"Scene update failed". Per-variant naming uses `CFBundleDisplayName` instead.
+
+**CocoaPods defaults unrecognised configuration names to `:release`.** That is
+why the Podfile declares the map explicitly:
+
+```ruby
+project 'TemplateProject.xcodeproj',
+        'Debug' => :debug,
+        'Release' => :release,
+        'Debug.Staging' => :debug,
+        'Release.Staging' => :release
+```
+
+Without it, React Native compiles out the dev server for the staging
+configuration and the app aborts with "No script URL provided".
+
 ## Version coupling
 
 `react-native-reanimated` and `react-native-worklets` are a matched pair --
@@ -367,8 +408,8 @@ on it. Upgrade both together:
 ## Status
 
 Phases 1 (foundation), 2 (design system), 3 (overlays and feedback), 4
-(navigation), 5 (data layer) and most of 6 (cross-cutting) are complete.
-Environment variants, the playground/CI pass and template packaging follow.
+(navigation), 5 (data layer) and 6 (cross-cutting, including environment
+variants) are complete. The playground/CI pass and template packaging follow.
 
 The 16 KB page-size check required by rule 34 was run against the debug APK
 after the animation stack landed: all 20 arm64 libraries, including

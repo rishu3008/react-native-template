@@ -181,4 +181,19 @@ jest.mock('@react-native-community/netinfo', () =>
   require('@react-native-community/netinfo/jest/netinfo-mock.js'),
 );
 
+// react-native-config reads values the native build injected, which do not
+// exist under Jest. The defaults mirror .env.development so tests run against
+// the same configuration a developer sees.
+jest.mock('react-native-config', () => ({
+  __esModule: true,
+  default: {
+    ENVIRONMENT: 'development',
+    API_BASE_URL: 'https://api.test',
+    API_TIMEOUT_MS: '15000',
+    API_MAX_RETRIES: '2',
+    USE_MOCK_AUTH: 'true',
+    ENABLE_DEV_TOOLS: 'true',
+  },
+}));
+
 export {};
