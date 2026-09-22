@@ -6,20 +6,18 @@ import {
   type PropsWithChildren,
 } from 'react';
 
-import { storageKeys } from '@constants';
-import { storageService } from '@services';
+import { sessionManager } from '@services';
 
 import { SessionContext } from './SessionContext';
 import type { SessionState, SessionStatus } from './types';
 
 /**
- * Session state for the navigation tree (AGENTS.md 19).
+ * Exposes session state to React (AGENTS.md 19).
  *
- * This is deliberately a placeholder: it persists a flag so the signed-in
- * state survives a relaunch, and nothing more. The real implementation --
- * tokens, refresh, expiry -- belongs to the auth service, and replacing this
- * provider's internals will not change the navigation tree, because the tree
- * depends only on `status`.
+ * The lifecycle itself belongs to sessionManager; this is the binding that
+ * turns it into state the navigation tree can render from. Keeping the two
+ * apart means a token refresh triggered from an interceptor -- with no
+ * component involved -- still reaches the UI through the same subscription.
  */
 export const SessionProvider = ({ children }: PropsWithChildren) => {
   const [status, setStatus] = useState<SessionStatus>('restoring');
@@ -27,35 +25,41 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
   useEffect(() => {
     let cancelled = false;
 
-    const restore = async () => {
-      const stored = await storageService.getString(storageKeys.session);
-
+    // Subscribed before restore, so a sign-out raised during restore (an
+    // expired refresh token, for instance) is not missed.
+    const unsubscribe = sessionManager.subscribe(isAuthenticated => {
       if (!cancelled) {
-        setStatus(stored === 'active' ? 'authenticated' : 'unauthenticated');
-      }
-    };
-
-    restore().catch(() => {
-      // An unreadable store means no session, not a broken app.
-      if (!cancelled) {
-        setStatus('unauthenticated');
+        setStatus(isAuthenticated ? 'authenticated' : 'unauthenticated');
       }
     });
 
+    sessionManager
+      .restore()
+      .then(isAuthenticated => {
+        if (!cancelled) {
+          setStatus(isAuthenticated ? 'authenticated' : 'unauthenticated');
+        }
+      })
+      .catch(() => {
+        // An unreadable keychain means no session, not a broken app. The
+        // gate must open either way or the app hangs on the loader.
+        if (!cancelled) {
+          setStatus('unauthenticated');
+        }
+      });
+
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
 
-  const signIn = useCallback(async () => {
-    await storageService.setString(storageKeys.session, 'active');
-    setStatus('authenticated');
-  }, []);
+  const signIn = useCallback(
+    (email: string, password: string) => sessionManager.signIn(email, password),
+    [],
+  );
 
-  const signOut = useCallback(async () => {
-    await storageService.remove(storageKeys.session);
-    setStatus('unauthenticated');
-  }, []);
+  const signOut = useCallback(() => sessionManager.signOut(), []);
 
   const value = useMemo<SessionState>(
     () => ({ status, signIn, signOut }),

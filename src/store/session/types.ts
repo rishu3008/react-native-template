@@ -9,6 +9,6 @@ export type SessionStatus = 'restoring' | 'authenticated' | 'unauthenticated';
 
 export type SessionState = {
   status: SessionStatus;
-  signIn: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };

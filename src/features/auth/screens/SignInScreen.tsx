@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { AppButton, AppInput, AppScreen, AppText, Stack } from '@components';
+import { toAppError } from '@services';
 import { useSession } from '@store';
 
 /**
@@ -13,11 +14,21 @@ import { useSession } from '@store';
 export const SignInScreen = () => {
   const { signIn } = useSession();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | undefined>(undefined);
 
   const handleSignIn = () => {
     setIsSubmitting(true);
-    signIn().finally(() => setIsSubmitting(false));
+    setError(undefined);
+
+    signIn(email, password)
+      .catch((caught: unknown) => {
+        // The session layer hands back an AppError whose message is already
+        // safe to show. Raw exception text never reaches the user (rule 20).
+        setError(toAppError(caught).message);
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   return (
@@ -40,6 +51,19 @@ export const SignInScreen = () => {
             testID="sign-in-email"
             value={email}
           />
+          <AppInput
+            label="Password"
+            onChangeText={setPassword}
+            placeholder="Your password"
+            secureTextEntry
+            testID="sign-in-password"
+            value={password}
+          />
+          {error != null && (
+            <AppText color="error" variant="bodySmall">
+              {error}
+            </AppText>
+          )}
           <AppButton
             loading={isSubmitting}
             onPress={handleSignIn}

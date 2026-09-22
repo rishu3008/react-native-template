@@ -4,11 +4,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@components';
+import { bootstrap } from './bootstrap';
 import { RootNavigator } from '@navigation';
 import { SessionProvider } from '@store';
 import { useTheme } from '@theme';
 
-import { ThemeProvider } from './providers';
+import { QueryProvider, ThemeProvider } from './providers';
 
 /**
  * Renders the status bar against the active theme and hosts the app content.
@@ -40,6 +41,10 @@ const AppContent = () => {
   );
 };
 
+// Runs before the first render so services are connected by the time any
+// provider reads them. Idempotent, so strict mode's double mount is safe.
+bootstrap();
+
 const App = () => (
   // GestureHandlerRootView must wrap the whole tree, and must have flex: 1 --
   // without the flex it collapses to zero height and nothing renders.
@@ -48,15 +53,17 @@ const App = () => (
       <ThemeProvider>
         {/* BottomSheetModalProvider hosts the portal AppBottomSheet renders
             into, which is what keeps sheets from being clipped by layout. */}
-        <BottomSheetModalProvider>
-          {/* Session sits above Toast so a sign-out can raise a toast on the
+        <QueryProvider>
+          <BottomSheetModalProvider>
+            {/* Session sits above Toast so a sign-out can raise a toast on the
               way out, and above the navigator, which reads session status. */}
-          <SessionProvider>
-            <ToastProvider>
-              <AppContent />
-            </ToastProvider>
-          </SessionProvider>
-        </BottomSheetModalProvider>
+            <SessionProvider>
+              <ToastProvider>
+                <AppContent />
+              </ToastProvider>
+            </SessionProvider>
+          </BottomSheetModalProvider>
+        </QueryProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   </GestureHandlerRootView>

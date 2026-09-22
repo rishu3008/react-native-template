@@ -1,2 +1,3 @@
+export { secureStorageService } from './secureStorage';
 export { storageService } from './storageService';
-export type { StorageService } from './types';
+export type { SecureStorageService, StorageService } from './types';

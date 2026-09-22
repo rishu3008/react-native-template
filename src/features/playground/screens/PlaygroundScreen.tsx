@@ -3,6 +3,7 @@ import { AppScreen, Divider, Stack } from '@components';
 import {
   ButtonsSection,
   ColorsSection,
+  DataSection,
   HeaderSection,
   InputsSection,
   ListSection,
@@ -42,6 +43,8 @@ export const PlaygroundScreen = () => (
       <OverlaysSection />
       <Divider />
       <StatesSection />
+      <Divider />
+      <DataSection />
       <Divider />
       <MediaSection />
       <Divider />

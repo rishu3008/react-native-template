@@ -146,6 +146,12 @@ adapter (rule 48), so application code never imports the vendor directly.
   Native 0.87 no longer exports. `skipLibCheck` hides the unresolved reference,
   leaving its `ImageStyle` with no layout properties at all. `AppImage` exposes
   React Native's `ImageStyle` and casts once at the vendor boundary.
+- **Zod 4 needs an extra Babel plugin.** It ships `export * as ns from '...'`,
+  which React Native's preset does not transform, so Metro fails at bundle
+  time. `@babel/plugin-transform-export-namespace-from` is in
+  `babel.config.js`. Jest does not hit this -- `transformIgnorePatterns`
+  excludes zod and it resolves to the CJS build there -- so the test suite
+  stays green while the app will not start.
 - **Reanimated cannot be loaded under Jest.** Its `.native` entry points need
   a worklet runtime that does not exist there, and resolving away from them
   loads its web build, which requires `react-native-web`. It is mocked in
@@ -246,6 +252,42 @@ The screens under `src/features/auth`, `home` and `settings` are structural
 placeholders. They demonstrate the navigation shape; consumers replace the
 bodies and keep the wiring.
 
+## Data layer
+
+The chain is `Screen -> hook -> repository -> ApiClient` (rule 15). Screens
+never see an HTTP response or a vendor error.
+
+```tsx
+const { data, isPending, isError, error, refetch } = usePosts();
+```
+
+Every failure becomes an **`AppError`** before it reaches feature code, with a
+`kind` (`network`, `authentication`, `validation`, `timeout`, ...), a
+user-safe message, and the original failure retained as `cause` for logging
+only. Server messages are surfaced verbatim only for validation failures,
+where they name the field the user got wrong; everything else uses template
+copy, because server messages leak implementation detail.
+
+Responses are validated with Zod before reaching the UI: a field the API
+renames otherwise arrives as `undefined` and fails far from the request.
+
+### Authentication
+
+`sessionManager` is the single owner of session lifecycle. Concurrent 401s
+coalesce into **one** refresh -- servers rotate refresh tokens, so a second
+concurrent refresh would send one the server has already invalidated and sign
+the user out mid-refresh.
+
+### Tokens do not survive a reinstall
+
+iOS keeps keychain items when an app is deleted and restores them on reinstall
+of the same bundle identifier. Without a guard, a user who uninstalls the app
+to sign out is still signed in after reinstalling. `tokenManager.clearIfFreshInstall()`
+detects this by looking for a marker in AsyncStorage, which _is_ wiped on
+uninstall, and purges the keychain when it is missing. Android wipes app data
+on uninstall, so it is a no-op there -- but the check is unconditional, because
+a platform branch here would be a platform-specific security difference.
+
 ## Version coupling
 
 `react-native-reanimated` and `react-native-worklets` are a matched pair --
@@ -259,9 +301,9 @@ on it. Upgrade both together:
 
 ## Status
 
-Phases 1 (foundation), 2 (design system), 3 (overlays and feedback) and 4
-(navigation) are complete. The data layer, cross-cutting concerns and template
-packaging follow.
+Phases 1 (foundation), 2 (design system), 3 (overlays and feedback), 4
+(navigation) and 5 (data layer) are complete. Cross-cutting concerns, the
+playground/CI pass and template packaging follow.
 
 The 16 KB page-size check required by rule 34 was run against the debug APK
 after the animation stack landed: all 20 arm64 libraries, including

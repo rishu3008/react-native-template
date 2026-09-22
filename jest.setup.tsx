@@ -136,4 +136,36 @@ jest.mock('@gorhom/bottom-sheet', () => {
   };
 });
 
+// react-native-keychain is a TurboModule with no JS fallback. An in-memory
+// double keeps the token lifecycle testable, including the fresh-install
+// purge, which needs keychain state to survive independently of AsyncStorage.
+jest.mock('react-native-keychain', () => {
+  const store = new Map<string, { username: string; password: string }>();
+
+  return {
+    __esModule: true,
+    ACCESSIBLE: { AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'afu-tdo' },
+    getGenericPassword: jest.fn(async (options?: { service?: string }) => {
+      const entry = store.get(options?.service ?? 'default');
+      return entry ?? false;
+    }),
+    setGenericPassword: jest.fn(
+      async (
+        username: string,
+        password: string,
+        options?: { service?: string },
+      ) => {
+        store.set(options?.service ?? 'default', { username, password });
+        return true;
+      },
+    ),
+    resetGenericPassword: jest.fn(async (options?: { service?: string }) => {
+      store.delete(options?.service ?? 'default');
+      return true;
+    }),
+    /** Test seam: wipe the simulated keychain between tests. */
+    __clear: () => store.clear(),
+  };
+});
+
 export {};
