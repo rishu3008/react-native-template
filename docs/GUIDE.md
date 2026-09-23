@@ -191,13 +191,20 @@ if (isError)
 
 ### Add a colour
 
-```bash
-# 1. Add the raw value to src/theme/tokens/palette.ts, then:
-npm run theme:add-color -- --role brandAccent --light palette.blue600 --dark palette.blue400
+```ts
+// 1. src/theme/tokens/palette.ts -- the source of truth
+brandAccent: '#2563EB',
 ```
 
-That wires it into `ThemeColors` and **both** themes. Use it as
-`theme.colors.brandAccent`.
+```bash
+# 2. Wire it into ThemeColors and both themes
+npm run theme:add-color
+```
+
+Use it as `theme.colors.brandAccent`. Both themes get the same value unless
+you pass `--dark palette.blue400`; the script reports every colour it wired
+identically, because that is a prompt to pick a dark value rather than a
+finished job.
 
 Never write a hex code in a component -- `react-native/no-color-literals` is
 an error everywhere outside `src/theme`.

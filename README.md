@@ -462,15 +462,26 @@ Each has a command.
 | `npm run fonts`           | Registers every font in `src/assets/fonts` with **both** native projects                     |
 | `npm run theme:add-color` | Adds a semantic colour role to `ThemeColors`, the light theme and the dark theme             |
 
+Each is driven by the filesystem or the palette rather than by arguments, so
+adding a thing and registering it are the same act:
+
 ```bash
-npm run theme:add-color -- --role brandAccent --light palette.blue600 --dark palette.blue400
+# 1. Add the colour to src/theme/tokens/palette.ts
+#      brandAccent: '#2563EB',
+# 2. Wire it into ThemeColors and both themes
+npm run theme:add-color
 ```
 
-Prefer a `palette.` reference over a hex literal: rule 9 exists so that
-re-theming means editing the palette rather than hunting hex codes through two
-theme files.
+Naming one (`npm run theme:add-color -- brandAccent`) wires just that colour;
+`--dark palette.blue400` gives the dark theme a different value. Without it
+both themes get the same value and the script says so -- a colour legible on
+white is often not legible on near-black.
 
-`assets:check` and `fonts:check` fail instead of writing, for CI.
+Palette entries shaped like `blue500` are treated as raw scale steps and left
+alone, since rule 9 exists so components name intent rather than a shade.
+
+`assets:check`, `fonts:check` and `theme:check` fail instead of writing, for
+CI.
 
 ### Fonts
 

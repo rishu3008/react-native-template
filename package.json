@@ -34,6 +34,7 @@
     "fonts": "node scripts/link-fonts.js",
     "fonts:check": "node scripts/link-fonts.js --check",
     "theme:add-color": "node scripts/add-color.js",
+    "theme:check": "node scripts/add-color.js --check",
     "rename": "node scripts/rename.js"
   },
   "dependencies": {

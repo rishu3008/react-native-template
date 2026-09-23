@@ -34,6 +34,16 @@ const toCamelCase = name => {
   return pascal.charAt(0).toLowerCase() + pascal.slice(1);
 };
 
+/**
+ * `heart.svg` -> `HeartIcon`, but `lockIcon.svg` -> `LockIcon`, not
+ * `LockIconIcon`. Both naming styles are in use in the wild and neither is
+ * wrong, so the suffix is added only when it is missing.
+ */
+const toIconExport = file => {
+  const pascal = toPascalCase(file);
+  return pascal.endsWith('Icon') ? pascal : `${pascal}Icon`;
+};
+
 const listFiles = (dir, extensions) => {
   if (!fs.existsSync(dir)) return [];
 
@@ -56,8 +66,7 @@ export {};
 
   const exports = files
     .map(
-      file =>
-        `export { default as ${toPascalCase(file)}Icon } from './${file}';`,
+      file => `export { default as ${toIconExport(file)} } from './${file}';`,
     )
     .join('\n');
 
@@ -125,6 +134,26 @@ const write = (file, content, check) => {
   return true;
 };
 
+const assertNoCollisions = (files, toName, dir) => {
+  const byName = new Map();
+
+  for (const file of files) {
+    const name = toName(file);
+    byName.set(name, [...(byName.get(name) ?? []), file]);
+  }
+
+  const clashes = [...byName.entries()].filter(([, group]) => group.length > 1);
+
+  if (clashes.length === 0) return;
+
+  console.error(`\n  Two files in ${dir} produce the same export name:\n`);
+  for (const [name, group] of clashes) {
+    console.error(`      ${group.join(', ')}  ->  ${name}`);
+  }
+  console.error('\n  Rename one of them.\n');
+  process.exit(1);
+};
+
 const main = () => {
   const check = process.argv.includes('--check');
 
@@ -138,6 +167,13 @@ const main = () => {
     '.webp',
     '.gif',
   ]).filter(file => !/@[23]x\./.test(file));
+
+  // Two files can reduce to one export name -- lock.svg and lockIcon.svg both
+  // become LockIcon. Duplicate named exports are a SyntaxError that surfaces
+  // from a generated file, where it reads as a bug in this script rather than
+  // as two files that need distinct names.
+  assertNoCollisions(iconFiles, toIconExport, 'src/assets/icons');
+  assertNoCollisions(imageFiles, toCamelCase, 'src/assets/images');
 
   console.log(
     `\n  ${check ? 'Checking' : 'Generating'} asset barrels: ` +
