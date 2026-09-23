@@ -420,6 +420,46 @@ project 'TemplateProject.xcodeproj',
 Without it, React Native compiles out the dev server for the staging
 configuration and the app aborts with "No script URL provided".
 
+## Generators
+
+Three things in this template need registering in more than one place, which
+is exactly the kind of step that gets forgotten and then fails at runtime.
+Each has a command.
+
+| Command                   | What it does                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------------- |
+| `npm run assets`          | Regenerates the icon and image barrels from `src/assets/`. Drop an SVG or PNG in and run it. |
+| `npm run fonts`           | Registers every font in `src/assets/fonts` with **both** native projects                     |
+| `npm run theme:add-color` | Adds a semantic colour role to `ThemeColors`, the light theme and the dark theme             |
+
+```bash
+npm run theme:add-color -- --role brandAccent --light palette.blue600 --dark palette.blue400
+```
+
+Prefer a `palette.` reference over a hex literal: rule 9 exists so that
+re-theming means editing the palette rather than hunting hex codes through two
+theme files.
+
+`assets:check` and `fonts:check` fail instead of writing, for CI.
+
+### Fonts
+
+The template ships **Inter** in four weights. A font has to be in three places
+to work -- the Android assets directory, the Xcode target's resources, and
+`UIAppFonts` in Info.plist -- and missing one means the text silently falls
+back to the system face **on that platform only**.
+
+React Native does not synthesise weights from one family the way the web does.
+Each weight is a separate file and a separate family name, which is why
+`AppText` takes a named `weight` (`regular`, `medium`, `semiBold`, `bold`)
+rather than a numeric one: setting `fontWeight` alone would leave the regular
+face loaded and let the platform fake the weight.
+
+Adding a font is: drop the file in `src/assets/fonts`, run `npm run fonts`,
+add it to `fontFamily` in `src/theme/tokens/typography.ts`, then rebuild both
+platforms -- a Metro reload will not pick it up, because the native bundle
+changed.
+
 ## Testing and CI
 
 ```bash

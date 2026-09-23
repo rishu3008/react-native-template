@@ -1,6 +1,11 @@
 import { Text, type TextProps, type TextStyle } from 'react-native';
 
-import { useTheme, type TypographyVariant } from '@theme';
+import {
+  fontFamily,
+  useTheme,
+  type FontWeightName,
+  type TypographyVariant,
+} from '@theme';
 
 export type AppTextColor =
   | 'primary'
@@ -17,7 +22,14 @@ export type AppTextProps = TextProps & {
   variant?: TypographyVariant;
   color?: AppTextColor;
   align?: TextStyle['textAlign'];
-  weight?: TextStyle['fontWeight'];
+  /**
+   * Overrides the variant's weight.
+   *
+   * Named rather than numeric because each weight is a separate font file:
+   * setting fontWeight alone would leave the regular face loaded and let the
+   * platform fake the weight, which looks different on each one.
+   */
+  weight?: FontWeightName;
 };
 
 /**
@@ -71,7 +83,7 @@ export const AppText = ({
         theme.typography[variant] as TextStyle,
         { color: resolveColor() },
         align != null && { textAlign: align },
-        weight != null && { fontWeight: weight },
+        weight != null && { fontFamily: fontFamily[weight] },
         style,
       ]}
       {...rest}

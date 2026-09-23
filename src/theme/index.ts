@@ -5,6 +5,7 @@ export type { Theme, ThemeColors, ThemeMode, ThemePreference } from './types';
 export {
   breakpoints,
   contentMaxWidth,
+  fontFamily,
   palette,
   radius,
   shadows,
@@ -13,6 +14,7 @@ export {
   typography,
   zIndex,
   type Breakpoint,
+  type FontWeightName,
   type Radius,
   type ShadowLevel,
   type Spacing,
