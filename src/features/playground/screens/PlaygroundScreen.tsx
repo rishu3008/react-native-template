@@ -4,11 +4,14 @@ import {
   ButtonsSection,
   ColorsSection,
   DataSection,
+  DiagnosticsSection,
   HeaderSection,
   InputsSection,
   ListSection,
+  LocalizationSection,
   MediaSection,
   PlatformSection,
+  PrimitivesSection,
   OverlaysSection,
   SelectionSection,
   StatesSection,
@@ -35,6 +38,8 @@ export const PlaygroundScreen = () => (
       <Divider />
       <TypographySection />
       <Divider />
+      <PrimitivesSection />
+      <Divider />
       <ButtonsSection />
       <Divider />
       <InputsSection />
@@ -52,6 +57,10 @@ export const PlaygroundScreen = () => (
       <SurfacesSection />
       <Divider />
       <ListSection />
+      <Divider />
+      <DiagnosticsSection />
+      <Divider />
+      <LocalizationSection />
       <Divider />
       <PlatformSection />
       <Divider />

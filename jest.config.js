@@ -50,6 +50,16 @@ module.exports = {
     '!src/**/index.ts',
     // Test helpers, not production code.
     '!src/app/testing/**',
+    /**
+     * The playground is a visual test surface, not production logic, and it
+     * is the first thing a consumer deletes. Its sections are long stretches
+     * of JSX whose only assertion worth making -- that they render -- the
+     * smoke test already makes by mounting the whole screen.
+     *
+     * Measuring them would let a large, untestable demo surface drag the
+     * threshold down until it stopped protecting the code that matters.
+     */
+    '!src/features/playground/sections/**',
   ],
   /**
    * Thresholds sit just below what the suite currently achieves, so a
@@ -60,10 +70,10 @@ module.exports = {
    */
   coverageThreshold: {
     global: {
-      statements: 79,
-      branches: 72,
-      functions: 67,
-      lines: 79,
+      statements: 83,
+      branches: 75,
+      functions: 76,
+      lines: 83,
     },
     // The layers a bug hurts most carry their own higher floor, so overall
     // coverage cannot be propped up by well-tested UI while the API client or

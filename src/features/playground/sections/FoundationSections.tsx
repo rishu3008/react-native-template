@@ -56,14 +56,33 @@ export const ThemeSection = () => {
   );
 };
 
+const WEIGHTS = ['regular', 'medium', 'semiBold', 'bold'] as const;
+
 export const TypographySection = () => (
-  <Stack gap="sm">
-    <AppText variant="heading3">Typography</AppText>
-    {TYPOGRAPHY_VARIANTS.map(variant => (
-      <AppText key={variant} variant={variant}>
-        {variant}
+  <Stack gap="lg">
+    <Stack gap="sm">
+      <AppText variant="heading3">Typography</AppText>
+      {TYPOGRAPHY_VARIANTS.map(variant => (
+        <AppText key={variant} variant={variant}>
+          {variant}
+        </AppText>
+      ))}
+    </Stack>
+
+    <Stack gap="sm">
+      <AppText color="secondary" variant="label">
+        Inter weights
       </AppText>
-    ))}
+      {WEIGHTS.map(weight => (
+        <AppText key={weight} variant="body" weight={weight}>
+          {`${weight} - Inter-${weight.charAt(0).toUpperCase()}${weight.slice(1)}`}
+        </AppText>
+      ))}
+      <AppText color="secondary" variant="caption">
+        Each weight is a separate font file, so `weight` is a name rather than a
+        number. React Native does not synthesise weights from one family.
+      </AppText>
+    </Stack>
   </Stack>
 );
 

@@ -302,6 +302,149 @@ toast.show({ message: 'Saved', tone: 'success' });
 Both overlays are driven by `visible`. Do not reach for the underlying
 library's imperative API.
 
+### Add a feature
+
+A feature is a folder, not a file. Give it only the parts it needs:
+
+```text
+src/features/orders/
+├── api/            repositories and Zod schemas
+├── components/     components only this feature uses
+├── hooks/          React Query hooks and feature logic
+├── screens/
+├── types.ts
+└── index.ts        the feature's public surface
+```
+
+Import across features through the barrel (`@features/orders`), never into
+another feature's internals. `index.ts` is the contract; everything else is
+private by convention and by the deep-import lint rule.
+
+A component used by two features has outgrown the feature -- move it to
+`src/components/`. One used by one feature should stay in it, however
+reusable it looks.
+
+### Add a mutation
+
+Mutations are not retried automatically: a create that appears to fail may
+have succeeded, and repeating it risks duplicates. That is configured once, in
+the query client.
+
+```ts
+export const useCreateOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateOrderInput) => orderRepository.create(input),
+    onSuccess: () => {
+      // Invalidate by the key tree, not by a hand-written string: that is
+      // what the keys object is for.
+      void queryClient.invalidateQueries({ queryKey: orderKeys.all });
+    },
+  });
+};
+```
+
+### Authenticated requests
+
+There is nothing to do. `installAuthInterceptors` attaches the bearer token
+and, on a 401, refreshes once and replays the request. Concurrent 401s
+coalesce into a single refresh, because servers rotate refresh tokens and a
+second concurrent refresh would send one the server has already invalidated.
+
+Two flags exist for the exceptions:
+
+```ts
+apiClient.post('/auth/sign-in', credentials, { skipAuth: true });
+apiClient.post('/analytics/event', payload, { skipRetry: true });
+```
+
+`skipAuth` on the sign-in and refresh calls is not optional -- attaching an
+expired token to the request that renews it is how refresh loops start.
+
+### Handle an error
+
+Everything the API layer throws is an `AppError` with a `kind`, a message safe
+to show, and the original failure kept as `cause` for logging only.
+
+```ts
+try {
+  await orderRepository.create(input);
+} catch (caught) {
+  const error = toAppError(caught);
+
+  if (error.kind === 'validation' && error.fieldErrors) {
+    setFieldErrors(error.fieldErrors);
+    return;
+  }
+
+  toast.show({ message: error.message, tone: 'error' });
+  logger.error('Order creation failed', error, { input });
+}
+```
+
+Never surface `caught.message` directly. Server messages leak implementation
+detail and are not written for users -- which is why only validation failures
+use them.
+
+### Log something
+
+```ts
+logger.info('Checkout started', { orderId, total });
+```
+
+Context is **redacted before it reaches any transport**, so passing an object
+that happens to contain a token or a password is safe. Keys matching
+`password`, `token`, `authorization`, `card` and similar are replaced.
+
+`console.log` is a lint error everywhere except the logger itself.
+
+### Report a crash or an event
+
+```ts
+analytics.track({ name: 'checkout_started', properties: { method: 'card' } });
+crashReporter.recordError(error, { screen: 'Checkout' });
+```
+
+No vendor is registered, so both route to the logger. Wiring is therefore
+verifiable before an SDK exists. To plug one in, implement the interface and
+register it in `bootstrap`:
+
+```ts
+crashReporter.configure(sentryReporter);
+```
+
+Application code never imports the SDK, so swapping vendors is one line.
+
+### Navigate from outside a component
+
+Notification handlers, deep-link routing and interceptors have no component to
+call `useNavigation` from.
+
+```ts
+const delivered = dispatchWhenReady(action);
+```
+
+It returns `false` rather than silently dropping the intent when the container
+is not mounted -- which is exactly the cold-start case for a tapped
+notification. Queue and replay when it does.
+
+### Use a translated string
+
+```tsx
+const { t } = useTranslation();
+<AppText>{t('common.retry')}</AppText>;
+```
+
+Switching locale re-renders every `t()` immediately. **Layout direction does
+not follow**: React Native reads it when the view hierarchy is created, so
+switching to Arabic needs a restart. `changeLocale` returns whether one is
+required rather than pretending it applied.
+
+Write RTL-safe styles from the start: `marginStart` and `paddingEnd`, never
+`marginLeft`. The one exception is safe-area insets, which describe physical
+screen edges -- the notch stays on the physical left under RTL.
+
 ---
 
 ## 4. Things that will fight you
@@ -332,3 +475,24 @@ lint-staged only, so `validate` is on you.
 And the rule that matters most: **run it**. A passing test suite is not a
 working screen. Every UI bug found while building this template passed its
 tests first.
+
+---
+
+## 6. The playground
+
+`src/features/playground/` is the template's own visual surface. It renders
+every component, every state and every service that has no UI of its own --
+typography and the four Inter weights, the layout primitives, buttons, inputs,
+selection controls, overlays, loading and empty and error states, the data
+layer end to end, images and icons, surfaces, lists, the error boundary,
+upload progress, the vendor adapters, localisation, permissions, connectivity
+and the colour palette.
+
+It is the fastest way to see what exists before building anything, and the
+fastest way to check a change to a shared component did not break something
+else.
+
+It is also the first thing to delete. It is excluded from coverage for that
+reason: it is a visual surface rather than logic, and measuring long stretches
+of demo JSX would drag the threshold down until it stopped protecting the code
+that matters.
