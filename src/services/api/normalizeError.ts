@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 import { AppError, type AppErrorKind } from './AppError';
 
 /** Shape most JSON APIs use for errors. Everything is optional by design. */
@@ -70,26 +72,36 @@ export const normalizeHttpError = (status: number, body: unknown): AppError => {
 };
 
 /**
- * Turn a thrown transport failure into an AppError.
+ * Turn anything axios throws into an AppError.
  *
- * fetch rejects with a TypeError for DNS, TLS and offline failures, and an
- * AbortError when the caller or the timeout cancels it. Those are different
- * user-facing situations, so they must not collapse into one kind.
+ * Axios reports several very different situations through one error type, and
+ * they are not interchangeable to a user: a cancellation was the caller's own
+ * decision, a timeout is worth retrying, and an unreachable host is an
+ * offline state. Collapsing them loses the distinction the UI needs.
  */
-export const normalizeTransportError = (
-  error: unknown,
-  wasTimeout: boolean,
-): AppError => {
-  if (wasTimeout) {
-    return AppError.from('timeout', { cause: error });
-  }
-
-  if (error instanceof Error && error.name === 'AbortError') {
+export const normalizeTransportError = (error: unknown): AppError => {
+  if (axios.isCancel(error)) {
     return AppError.from('cancelled', { cause: error });
   }
 
-  if (error instanceof TypeError) {
-    return AppError.from('network', { cause: error });
+  if (axios.isAxiosError(error)) {
+    // A response means the server answered; the status decides the kind.
+    if (error.response != null) {
+      return normalizeHttpError(error.response.status, error.response.data);
+    }
+
+    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      return AppError.from('timeout', { cause: error });
+    }
+
+    if (error.code === 'ERR_CANCELED') {
+      return AppError.from('cancelled', { cause: error });
+    }
+
+    // A request was made and nothing came back: DNS, TLS, or offline.
+    if (error.request != null) {
+      return AppError.from('network', { cause: error });
+    }
   }
 
   return AppError.from('unknown', { cause: error });

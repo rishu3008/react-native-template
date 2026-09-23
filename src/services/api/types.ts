@@ -2,6 +2,15 @@ import type { AppError } from './AppError';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+/** Bytes transferred so far, for upload and download progress. */
+export type ProgressEvent = {
+  loaded: number;
+  /** Undefined when the server does not send a content length. */
+  total: number | undefined;
+  /** 0..1, undefined when the total is unknown. */
+  ratio: number | undefined;
+};
+
 export type RequestConfig = {
   path: string;
   method?: HttpMethod;
@@ -15,6 +24,15 @@ export type RequestConfig = {
   /** Skip retries even if the failure is retryable. */
   skipRetry?: boolean;
   signal?: AbortSignal;
+  /**
+   * Upload and download progress.
+   *
+   * This is the reason the client is built on axios rather than fetch:
+   * React Native's fetch is a polyfill over XHR that does not surface
+   * progress events, so a file upload can show no progress at all.
+   */
+  onUploadProgress?: (event: ProgressEvent) => void;
+  onDownloadProgress?: (event: ProgressEvent) => void;
 };
 
 /**

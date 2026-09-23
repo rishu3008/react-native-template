@@ -1,68 +1,69 @@
+import axios, { type AxiosInstance, type AxiosProgressEvent } from 'axios';
+
 import { appConfig } from '@constants';
 
 import { AppError } from './AppError';
-import { normalizeHttpError, normalizeTransportError } from './normalizeError';
+import { normalizeTransportError } from './normalizeError';
 import type {
   ApiClientOptions,
   ErrorInterceptor,
+  ProgressEvent,
   RequestConfig,
   RequestInterceptor,
 } from './types';
-
-const buildUrl = (
-  baseUrl: string,
-  path: string,
-  query?: RequestConfig['query'],
-): string => {
-  const url = new URL(
-    path.startsWith('/') ? path.slice(1) : path,
-    baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
-  );
-
-  for (const [key, value] of Object.entries(query ?? {})) {
-    // Undefined params are dropped rather than serialised as "undefined",
-    // which is what a naive template string would send.
-    if (value !== undefined) {
-      url.searchParams.set(key, String(value));
-    }
-  }
-
-  return url.toString();
-};
 
 const delay = (ms: number) =>
   new Promise<void>(resolve => {
     setTimeout(resolve, ms);
   });
 
+const toProgress = (event: AxiosProgressEvent): ProgressEvent => ({
+  loaded: event.loaded,
+  total: event.total,
+  ratio:
+    event.total != null && event.total > 0
+      ? event.loaded / event.total
+      : undefined,
+});
+
 /**
  * The only place in the template that performs HTTP (AGENTS.md 15).
  *
  * Screens never reach this directly: they go through a hook, which goes
  * through a service. It owns base URL, headers, auth injection, timeouts,
- * retries and error normalisation, so no caller ever sees a fetch Response
- * or a raw thrown TypeError.
+ * retries and error normalisation, so no caller ever sees an axios response
+ * or an AxiosError.
  *
- * Built on fetch rather than a client library: interceptors and retry are the
- * only features that would have been inherited, and both are implemented here
- * anyway to keep them behind this boundary (rules 48, 66).
+ * Built on axios rather than fetch for one concrete reason: React Native's
+ * fetch is a polyfill over XHR that does not expose upload or download
+ * progress, so a file upload cannot report how far it has got. Everything
+ * else axios provides -- interceptors, retry, timeouts -- lives behind this
+ * boundary anyway (rule 48), which is why swapping the transport was a change
+ * to this file alone.
  */
 export class ApiClient {
   private readonly options: ApiClientOptions;
+  private readonly instance: AxiosInstance;
   private readonly requestInterceptors: RequestInterceptor[] = [];
   private readonly errorInterceptors: ErrorInterceptor[] = [];
 
   constructor(options: ApiClientOptions) {
     this.options = options;
+    this.instance = axios.create({
+      baseURL: options.baseUrl,
+      timeout: options.timeoutMs,
+      headers: { Accept: 'application/json' },
+      // Statuses are judged by the normaliser, not by axios, so every
+      // response reaches one place rather than splitting across then/catch.
+      validateStatus: () => true,
+    });
   }
 
   addRequestInterceptor(interceptor: RequestInterceptor): () => void {
     this.requestInterceptors.push(interceptor);
     return () => {
       const index = this.requestInterceptors.indexOf(interceptor);
-      if (index >= 0) {
-        this.requestInterceptors.splice(index, 1);
-      }
+      if (index >= 0) this.requestInterceptors.splice(index, 1);
     };
   }
 
@@ -70,9 +71,7 @@ export class ApiClient {
     this.errorInterceptors.push(interceptor);
     return () => {
       const index = this.errorInterceptors.indexOf(interceptor);
-      if (index >= 0) {
-        this.errorInterceptors.splice(index, 1);
-      }
+      if (index >= 0) this.errorInterceptors.splice(index, 1);
     };
   }
 
@@ -108,7 +107,7 @@ export class ApiClient {
     return this.request<T>({ ...config, path, method: 'DELETE' });
   }
 
-  async request<T>(config: RequestConfig): Promise<T> {
+  request<T>(config: RequestConfig): Promise<T> {
     return this.execute<T>(config, 0, false);
   }
 
@@ -162,76 +161,58 @@ export class ApiClient {
   private async performRequest<T>(config: RequestConfig): Promise<T> {
     const { path, method = 'GET', body, query, signal } = config;
 
-    let headers: Record<string, string> = {
-      Accept: 'application/json',
-      ...(body !== undefined && { 'Content-Type': 'application/json' }),
-      ...config.headers,
-    };
+    let headers: Record<string, string> = { ...config.headers };
 
     for (const interceptor of this.requestInterceptors) {
       headers = await interceptor(config, headers);
     }
 
-    const controller = new AbortController();
-    const timeoutMs = config.timeoutMs ?? this.options.timeoutMs;
-    let timedOut = false;
-
-    const timer = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, timeoutMs);
-
-    // The caller's signal and the timeout both have to be able to abort, so
-    // the caller's is forwarded rather than replaced.
-    const onCallerAbort = () => controller.abort();
-    signal?.addEventListener('abort', onCallerAbort);
-
-    let response: Response;
+    // Every axios rejection is normalised here. validateStatus lets all
+    // statuses resolve, so a rejection means a transport failure -- timeout,
+    // cancellation or an unreachable host -- and those must not fall through
+    // to the generic handler in execute(), which would flatten them all to
+    // `unknown` and lose the distinction the UI needs.
+    let response;
 
     try {
-      response = await fetch(buildUrl(this.options.baseUrl, path, query), {
+      response = await this.instance.request({
+        url: path,
         method,
         headers,
-        signal: controller.signal,
-        ...(body !== undefined && { body: JSON.stringify(body) }),
+        ...(body !== undefined && { data: body }),
+        // Undefined params are dropped by axios rather than serialised as
+        // "undefined", which is what a naive template string would send.
+        ...(query != null && { params: query }),
+        ...(config.timeoutMs != null && { timeout: config.timeoutMs }),
+        ...(signal != null && { signal }),
+        ...(config.onUploadProgress != null && {
+          onUploadProgress: (event: AxiosProgressEvent) =>
+            config.onUploadProgress?.(toProgress(event)),
+        }),
+        ...(config.onDownloadProgress != null && {
+          onDownloadProgress: (event: AxiosProgressEvent) =>
+            config.onDownloadProgress?.(toProgress(event)),
+        }),
       });
     } catch (error) {
-      throw normalizeTransportError(error, timedOut);
-    } finally {
-      clearTimeout(timer);
-      signal?.removeEventListener('abort', onCallerAbort);
+      throw normalizeTransportError(error);
     }
 
-    return this.parseResponse<T>(response);
-  }
-
-  private async parseResponse<T>(response: Response): Promise<T> {
-    // 204 and empty bodies are success, not a parse failure.
-    const raw = await response.text();
-    const hasBody = raw.length > 0;
-
-    let parsed: unknown;
-
-    if (hasBody) {
-      try {
-        parsed = JSON.parse(raw);
-      } catch (error) {
-        // A non-JSON body on an error response is common (an HTML error page
-        // from a proxy). The status still decides the kind; only a
-        // successful response with unreadable content is a parse failure.
-        if (!response.ok) {
-          throw normalizeHttpError(response.status, { message: raw });
-        }
-
-        throw AppError.from('parse', { status: response.status, cause: error });
-      }
+    // validateStatus lets everything through, so failures are judged here in
+    // one place rather than split between a then and a catch.
+    if (response.status < 200 || response.status >= 300) {
+      throw normalizeTransportError(
+        new axios.AxiosError(
+          'Request failed',
+          String(response.status),
+          response.config,
+          response.request,
+          response,
+        ),
+      );
     }
 
-    if (!response.ok) {
-      throw normalizeHttpError(response.status, parsed);
-    }
-
-    return parsed as T;
+    return response.data as T;
   }
 }
 

@@ -10,6 +10,7 @@ export { ApiClient, apiClient } from './apiClient';
 export { normalizeHttpError, normalizeTransportError } from './normalizeError';
 export type {
   ApiClientOptions,
+  ProgressEvent,
   ErrorInterceptor,
   HttpMethod,
   RequestConfig,

@@ -1,3 +1,5 @@
+import { AxiosError } from 'axios';
+
 import { normalizeHttpError, normalizeTransportError } from '@services';
 
 describe('normalizeHttpError', () => {
@@ -57,26 +59,38 @@ describe('normalizeHttpError', () => {
 });
 
 describe('normalizeTransportError', () => {
-  it('distinguishes a timeout from a cancellation', () => {
-    const aborted = new Error('Aborted');
-    aborted.name = 'AbortError';
+  const axiosError = (code: string, extra: Record<string, unknown> = {}) =>
+    Object.assign(new AxiosError('failed', code), extra);
 
-    // Both surface as AbortError from fetch, but one is the user's decision
-    // and the other is a failure worth retrying.
-    expect(normalizeTransportError(aborted, true).kind).toBe('timeout');
-    expect(normalizeTransportError(aborted, false).kind).toBe('cancelled');
+  it('reports a timeout as a timeout', () => {
+    expect(normalizeTransportError(axiosError('ECONNABORTED')).kind).toBe(
+      'timeout',
+    );
   });
 
-  it('maps a fetch TypeError to a network failure', () => {
+  it('keeps a cancellation distinct from a timeout', () => {
+    // One is the caller's own decision and must never be retried; the other
+    // is a failure worth retrying.
+    expect(normalizeTransportError(axiosError('ERR_CANCELED')).kind).toBe(
+      'cancelled',
+    );
+  });
+
+  it('reports an unreachable host as a network failure', () => {
     expect(
-      normalizeTransportError(new TypeError('Network request failed'), false)
-        .kind,
+      normalizeTransportError(axiosError('ERR_NETWORK', { request: {} })).kind,
     ).toBe('network');
   });
 
-  it('falls back to unknown', () => {
-    expect(normalizeTransportError({ weird: true }, false).kind).toBe(
-      'unknown',
-    );
+  it('uses the response status when the server answered', () => {
+    const error = axiosError('ERR_BAD_REQUEST', {
+      response: { status: 403, data: {} },
+    });
+
+    expect(normalizeTransportError(error).kind).toBe('authorization');
+  });
+
+  it('falls back to unknown for anything that is not an axios error', () => {
+    expect(normalizeTransportError({ weird: true }).kind).toBe('unknown');
   });
 });

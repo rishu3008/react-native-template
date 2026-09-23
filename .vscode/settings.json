@@ -1,0 +1,12 @@
+{
+  "i18n-ally.localesPaths": [
+    "src/services/i18n",
+    "coverage/lcov-report/services/i18n",
+    "src/services/i18n/locales",
+    "coverage/lcov-report/services/i18n/locales",
+    "ios/Pods/ReactNativeDependencies/Headers/folly/lang",
+    "ios/Pods/Headers/Private/ReactNativeDependencies/folly/lang",
+    "ios/Pods/Headers/Public/ReactNativeDependencies/folly/lang",
+    "ios/Pods/ReactNativeDependencies/framework/packages/react-native/ReactNativeDependencies.xcframework/Headers/folly/lang"
+  ]
+}

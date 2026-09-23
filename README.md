@@ -31,6 +31,32 @@ See AGENTS.md rule 56.1 for why the placeholder is not simply `Template`.
 
 ---
 
+## Creating a project from this template
+
+Click **Use this template** on GitHub, then rename:
+
+```bash
+node scripts/rename.js --name MyApp --bundle-id com.acme.myapp --display-name "My App"
+```
+
+Add `--dry-run` first to see exactly what it will touch.
+
+Renaming is not search-and-replace. The script covers the display name, the
+Android namespace and applicationId, the iOS bundle identifier, the Kotlin
+package _directory_, the Xcode project, workspace and scheme _filenames_, the
+Podfile target, the storage namespace and the deep-link URL scheme. It removes
+itself afterwards, because it is the last file carrying the placeholder
+identity and renaming twice is not meaningful.
+
+Then:
+
+```bash
+rm -rf ios/Pods ios/build android/.gradle android/app/build
+npm install
+npm run pods
+npm run validate
+```
+
 ## Getting started
 
 ```bash
@@ -442,10 +468,13 @@ on it. Upgrade both together:
 
 ## Status
 
-Phases 1 (foundation), 2 (design system), 3 (overlays and feedback), 4
-(navigation), 5 (data layer) and 6 (cross-cutting, including environment
-variants) and 7 (testing and CI) are complete. Template packaging and the
-v1.0 release follow.
+All eight phases are complete: foundation, design system, overlays and
+feedback, navigation, data layer, cross-cutting concerns, testing and CI, and
+packaging.
+
+Upgrading React Native is covered in [UPGRADING.md](./UPGRADING.md), including
+the deliberate divergences from the stock project that an upgrade must
+preserve. Contributing is covered in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 The 16 KB page-size check required by rule 34 was run against the debug APK
 after the animation stack landed: all 20 arm64 libraries, including
