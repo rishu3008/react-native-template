@@ -1,7 +1,11 @@
 <resources>
     <!--
-      app_name is supplied per flavour by resValue in build.gradle, so that
-      development, staging and production installs are distinguishable on a
-      device. Declaring it here as well is a duplicate-resource build error.
+      The display name, shared by every flavour.
+
+      It lived in build.gradle as a per-flavour resValue while development,
+      staging and production had distinct identities. They no longer do, so
+      one declaration here is the honest place for it, and scripts/rename.js
+      rewrites it when a project is generated from this template.
     -->
+    <string name="app_name">TemplateProject</string>
 </resources>

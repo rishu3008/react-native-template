@@ -38,7 +38,7 @@ export const sessionManager = {
   async restore(): Promise<boolean> {
     // Must run before the first token read: on iOS the keychain survives an
     // uninstall, so tokens can be present from a previous install.
-    await tokenManager.clearIfFreshInstall();
+    await tokenManager.clearForeignCredentials();
 
     const tokens = await tokenManager.load();
 

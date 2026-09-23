@@ -1,9 +1,12 @@
 /**
  * Date and time formatting (brief section 29).
  *
- * Built on Intl, which Hermes ships with full ICU, so the template adds no
- * date library. One formatting entry point means two screens cannot disagree
- * about what a date looks like.
+ * Built on Intl, so the template adds no date library. One formatting entry
+ * point means two screens cannot disagree about what a date looks like.
+ *
+ * Hermes does not bundle ICU; it implements Intl against whatever the host
+ * platform exposes. That covers DateTimeFormat and NumberFormat everywhere,
+ * but RelativeTimeFormat is missing on iOS -- see relativeFormatter below.
  *
  * Every function takes an explicit locale rather than reading a global, so
  * output is deterministic and testable.
@@ -56,6 +59,37 @@ const DIVISIONS: readonly {
 ];
 
 /**
+ * Intl.RelativeTimeFormat where the engine has it, plain English where it
+ * does not.
+ *
+ * Hermes on iOS implements Intl on top of Foundation, which offers no
+ * equivalent of RelativeTimeFormat, so the constructor is undefined there and
+ * calling it throws "undefined cannot be used as a constructor". Node has it,
+ * which is why a unit test cannot catch this and only a device can.
+ *
+ * The fallback is deliberately unlocalised rather than silently wrong: it
+ * always reads as English, so a missing translation is visible instead of
+ * looking like a bad one. A project that needs localised relative times on
+ * iOS should add @formatjs/intl-relativetimeformat, which this then uses
+ * automatically.
+ */
+const relativeFormatter = (
+  locale: string,
+): ((value: number, unit: Intl.RelativeTimeFormatUnit) => string) => {
+  if (typeof Intl.RelativeTimeFormat === 'function') {
+    const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    return (value, unit) => formatter.format(value, unit);
+  }
+
+  return (value, unit) => {
+    const count = Math.abs(value);
+    const plural = count === 1 ? unit : `${unit}s`;
+
+    return value < 0 ? `${count} ${plural} ago` : `in ${count} ${plural}`;
+  };
+};
+
+/**
  * "3 hours ago", "in 2 days".
  *
  * Walks up the unit scale rather than hardcoding thresholds, so the largest
@@ -73,12 +107,12 @@ export const formatRelativeTime = (
     return '';
   }
 
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const formatter = relativeFormatter(locale);
   let duration = (date.getTime() - reference.getTime()) / 1000;
 
   for (const division of DIVISIONS) {
     if (Math.abs(duration) < division.amount) {
-      return formatter.format(Math.round(duration), division.unit);
+      return formatter(Math.round(duration), division.unit);
     }
 
     duration /= division.amount;

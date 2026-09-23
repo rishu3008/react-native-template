@@ -280,10 +280,24 @@ const main = () => {
     ? `ios/${target.name}.xcodeproj`
     : `ios/${PLACEHOLDER.name}.xcodeproj`;
 
-  moves.push([
-    `${schemeParent}/xcshareddata/xcschemes/${PLACEHOLDER.name}.xcscheme`,
-    `ios/${target.name}.xcodeproj/xcshareddata/xcschemes/${target.name}.xcscheme`,
-  ]);
+  // Every scheme, not just the default one: the template ships a second
+  // scheme for the staging configurations, and a project that adds more must
+  // not have them silently left behind under the old name.
+  const schemeDir = `${schemeParent}/xcshareddata/xcschemes`;
+  const schemeDirFull = path.join(root, schemeDir);
+
+  if (fs.existsSync(schemeDirFull)) {
+    for (const scheme of fs.readdirSync(schemeDirFull)) {
+      if (!scheme.startsWith(PLACEHOLDER.name)) continue;
+
+      const renamed = target.name + scheme.slice(PLACEHOLDER.name.length);
+
+      moves.push([
+        `${schemeDir}/${scheme}`,
+        `ios/${target.name}.xcodeproj/xcshareddata/xcschemes/${renamed}`,
+      ]);
+    }
+  }
 
   console.log('');
 
@@ -340,13 +354,22 @@ const main = () => {
         },
       },
       {
-        file: path.join('android', 'app', 'build.gradle'),
-        // Only the production flavour: the dev and staging labels keep their
-        // suffixes so the variants stay distinguishable on a device.
+        file: path.join(
+          'android',
+          'app',
+          'src',
+          'main',
+          'res',
+          'values',
+          'strings.xml',
+        ),
+        // The generic pass has already turned this into the target *name*;
+        // the display name may differ from it ("Acme" vs "AcmeApp"), and
+        // only this one string carries the display name on Android.
         apply: content =>
           content.replace(
-            `resValue "string", "app_name", "${target.name}"`,
-            `resValue "string", "app_name", "${target.displayName}"`,
+            `<string name="app_name">${target.name}</string>`,
+            `<string name="app_name">${target.displayName}</string>`,
           ),
       },
       {

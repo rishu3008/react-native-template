@@ -8,7 +8,7 @@ import { sessionManager, tokenManager } from '@services';
  * which is the part most likely to break silently.
  */
 export const signInForTest = async (): Promise<void> => {
-  await tokenManager.clearIfFreshInstall();
+  await tokenManager.clearForeignCredentials();
   await tokenManager.save({
     accessToken: 'test-access-token',
     refreshToken: 'test-refresh-token',

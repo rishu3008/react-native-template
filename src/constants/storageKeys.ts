@@ -6,10 +6,11 @@ export const storageKeys = {
   themePreference: '@template/theme-preference',
   onboardingCompleted: '@template/onboarding-completed',
   /**
-   * Written on first launch after an install. Its absence means a fresh
-   * install, which is how the keychain purge below detects one.
+   * Names the environment the stored credentials belong to. Absent means a
+   * fresh install; a different name means a build from another environment
+   * was installed over this one. Either way the keychain is purged.
    */
-  installMarker: '@template/install-marker',
+  credentialOwner: '@template/credential-owner',
 } as const;
 
 export type StorageKey = (typeof storageKeys)[keyof typeof storageKeys];

@@ -276,6 +276,24 @@ reads `Config` directly.
 Never put a secret there. Anything compiled into a mobile binary is
 extractable.
 
+### Run a different environment
+
+```bash
+npm run ios:dev       npm run android:dev
+npm run ios:staging   npm run android:staging
+npm run ios:prod      npm run android:prod
+```
+
+All three install as the same app, `com.templateproject`, so one replaces
+another rather than sitting beside it. That is deliberate; the reasoning is in
+the README. What it means day to day is that switching environments signs you
+out: `tokenManager` records which environment the stored credentials belong to
+and purges them when that changes, so a production token is never sent to the
+staging API.
+
+From the Xcode GUI, pick the `TemplateProject Staging` scheme rather than
+editing build configurations by hand.
+
 ### Add a persisted value
 
 ```ts

@@ -21,8 +21,11 @@ export const PrimitivesSection = () => {
   const { theme } = useTheme();
   const toast = useToast();
 
+  // Keyed here rather than at each call site, because one of them maps over a
+  // list and the rest do not. React ignores the key outside a list.
   const swatch = (label: string) => (
     <Box
+      key={label}
       padding="sm"
       radius="sm"
       style={{ backgroundColor: theme.colors.primarySubtle }}>

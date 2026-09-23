@@ -15,7 +15,7 @@
     "android:bundle:prod": "cd android && ./gradlew bundleProductionRelease",
     "android:clean": "cd android && ./gradlew clean",
     "ios:dev": "react-native run-ios --mode Debug",
-    "ios:staging": "react-native run-ios --mode Debug.Staging",
+    "ios:staging": "react-native run-ios --scheme \"TemplateProject Staging\" --mode Debug.Staging",
     "ios:prod": "react-native run-ios --mode Release",
     "ios:clean": "cd ios && xcodebuild clean -workspace TemplateProject.xcworkspace -scheme TemplateProject",
     "lint": "eslint .",

@@ -390,14 +390,31 @@ Three environments, each with a committed `.env` file. Those files hold build
 configuration, not secrets -- anything compiled into a mobile binary is
 extractable (rule 23). `.env` itself is generated per build and gitignored.
 
-| Variant     | Android task                | iOS configuration | Identity                                                |
-| ----------- | --------------------------- | ----------------- | ------------------------------------------------------- |
-| development | `assembleDevelopmentDebug`  | `Debug`           | `com.templateproject.dev` / TemplateProject Dev         |
-| staging     | `assembleStagingDebug`      | `Debug.Staging`   | `com.templateproject.staging` / TemplateProject Staging |
-| production  | `assembleProductionRelease` | `Release`         | `com.templateproject` / TemplateProject                 |
+| Variant     | Android task                | iOS configuration |
+| ----------- | --------------------------- | ----------------- |
+| development | `assembleDevelopmentDebug`  | `Debug`           |
+| staging     | `assembleStagingDebug`      | `Debug.Staging`   |
+| production  | `assembleProductionRelease` | `Release`         |
 
-Distinct identifiers mean the variants install side by side, so testing
-staging does not mean uninstalling production and losing its data.
+All three ship under one bundle identifier, `com.templateproject`, and one
+display name. A variant selects its `.env` file and nothing else.
+
+On iOS there are two schemes. `TemplateProject` runs Debug and archives
+Release, which is the React Native default and covers development and
+production. `TemplateProject Staging` does the same for the two staging
+configurations. Without it, running staging from the Xcode GUI means editing
+the scheme's build configuration by hand every time -- `--mode` only helps
+from the command line.
+
+The alternative -- suffixed identifiers, so the variants install side by side
+-- buys one thing, coexistence on a single device, and costs three push
+registrations, three crash-reporting projects and three analytics streams to
+keep aligned. This template does not make that trade.
+
+The consequence is that installing one variant over another reuses the
+previous one's storage, and on iOS its keychain. `tokenManager` records which
+environment the stored credentials belong to and purges them when that
+changes, so a production token can never be sent to the staging API.
 
 Values are read through `appConfig`, never `Config` directly: everything
 crosses the bridge as a string, and an unrecognised environment resolves to

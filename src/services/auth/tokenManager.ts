@@ -1,4 +1,4 @@
-import { storageKeys } from '@constants';
+import { appConfig, storageKeys } from '@constants';
 import { secureStorageService, storageService } from '@services/storage';
 
 import type { AuthTokens } from './authTypes';
@@ -26,27 +26,40 @@ let cached: AuthTokens | null = null;
 
 export const tokenManager = {
   /**
-   * Clear credentials left behind by a previous install (AGENTS.md 19, 23).
+   * Discard credentials that belong to a different app lifetime
+   * (AGENTS.md 19, 23).
    *
-   * iOS keeps keychain items when an app is deleted and restores them on
-   * reinstall of the same bundle identifier. Without this, a user who
-   * uninstalls the app to sign out is still signed in after reinstalling.
-   * Android wipes app data on uninstall, so this is a no-op there -- but the
-   * check is unconditional, because a platform-specific branch here would be
-   * a platform-specific security difference.
+   * Two distinct situations produce the same hazard, so they share one guard:
    *
-   * The marker lives in AsyncStorage precisely because that *is* wiped on
-   * uninstall: its absence alongside a populated keychain is the signal.
+   * - **Reinstall.** iOS keeps keychain items when an app is deleted and
+   *   restores them on reinstall of the same bundle identifier. Without this,
+   *   a user who uninstalls to sign out is still signed in afterwards.
+   *   Android wipes app data on uninstall, so that half is a no-op there --
+   *   but the check is unconditional, because a platform-specific branch here
+   *   would be a platform-specific security difference.
+   * - **Environment switch.** Every environment ships under one bundle
+   *   identifier, so a development build installs over a production one and
+   *   inherits its keychain. A production access token must never be sent to
+   *   the staging API, nor the reverse.
+   *
+   * Both collapse into one question -- does the stored marker name the
+   * environment now running? The marker lives in AsyncStorage precisely
+   * because that *is* wiped on uninstall, so its absence alongside a
+   * populated keychain is the reinstall signal, and a mismatch is the
+   * environment signal.
    */
-  async clearIfFreshInstall(): Promise<void> {
-    const marker = await storageService.getString(storageKeys.installMarker);
+  async clearForeignCredentials(): Promise<void> {
+    const marker = await storageService.getString(storageKeys.credentialOwner);
 
-    if (marker != null) {
+    if (marker === appConfig.environment) {
       return;
     }
 
     await this.clear();
-    await storageService.setString(storageKeys.installMarker, 'installed');
+    await storageService.setString(
+      storageKeys.credentialOwner,
+      appConfig.environment,
+    );
   },
 
   async load(): Promise<AuthTokens | null> {

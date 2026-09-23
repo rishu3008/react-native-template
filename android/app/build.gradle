@@ -105,27 +105,31 @@ android {
         versionName "1.0"
     }
     /**
-     * One dimension, three flavours. Each gets its own applicationId suffix
-     * and app name, so development, staging and production installs coexist
-     * on one device -- without that, testing a staging build means
-     * uninstalling production (brief section 37).
+     * One dimension, three flavours -- selecting the .env file and nothing
+     * else (AGENTS.md 24).
+     *
+     * All three share one applicationId and one app name deliberately. The
+     * alternative, suffixed identifiers, exists to let the variants coexist
+     * on a device; this project does not need that, and paying for it would
+     * mean three push registrations, three crash-reporting projects and
+     * three analytics streams to keep aligned.
+     *
+     * The consequence is that installing one variant over another reuses the
+     * previous one's storage. tokenManager clears credentials when the
+     * environment changes, so a staging token cannot survive into a
+     * production build.
      */
     flavorDimensions += "environment"
 
     productFlavors {
         development {
             dimension "environment"
-            applicationIdSuffix ".dev"
-            resValue "string", "app_name", "TemplateProject Dev"
         }
         staging {
             dimension "environment"
-            applicationIdSuffix ".staging"
-            resValue "string", "app_name", "TemplateProject Staging"
         }
         production {
             dimension "environment"
-            resValue "string", "app_name", "TemplateProject"
         }
     }
 

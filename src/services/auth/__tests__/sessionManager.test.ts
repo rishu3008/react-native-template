@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { storageKeys } from '@constants';
+import { appConfig, storageKeys } from '@constants';
 import { sessionManager, tokenManager, type AuthService } from '@services';
 
 const validTokens = (overrides: Partial<{ expiresAt: number }> = {}) => ({
@@ -23,9 +23,12 @@ describe('sessionManager', () => {
     sessionManager.reset();
     await tokenManager.clear();
     await AsyncStorage.clear();
-    // Mark the install as seen so the fresh-install purge does not fire in
-    // tests that are not about it.
-    await AsyncStorage.setItem(storageKeys.installMarker, 'installed');
+    // Claim the credentials for the environment under test, so the purge
+    // does not fire in tests that are not about it.
+    await AsyncStorage.setItem(
+      storageKeys.credentialOwner,
+      appConfig.environment,
+    );
     auth = makeAuthService();
     sessionManager.configure(auth);
   });
@@ -60,7 +63,7 @@ describe('sessionManager', () => {
     });
   });
 
-  describe('fresh install', () => {
+  describe('foreign credentials', () => {
     it('purges credentials left behind by a previous install', async () => {
       await tokenManager.save(validTokens());
       // iOS keeps keychain items across an uninstall; AsyncStorage does not.
@@ -84,9 +87,23 @@ describe('sessionManager', () => {
 
       await sessionManager.restore();
 
-      expect(await AsyncStorage.getItem(storageKeys.installMarker)).toBe(
-        'installed',
+      expect(await AsyncStorage.getItem(storageKeys.credentialOwner)).toBe(
+        appConfig.environment,
       );
+    });
+
+    it('purges credentials left by a different environment', async () => {
+      await tokenManager.save(validTokens());
+      // Every environment ships under one bundle identifier, so a build
+      // installs over another and inherits its keychain. A production token
+      // reaching the staging API is the failure this prevents.
+      const otherEnvironment =
+        appConfig.environment === 'production' ? 'staging' : 'production';
+      await AsyncStorage.setItem(storageKeys.credentialOwner, otherEnvironment);
+      tokenManager.resetCache();
+
+      await expect(sessionManager.restore()).resolves.toBe(false);
+      expect(await tokenManager.load()).toBeNull();
     });
   });
 
