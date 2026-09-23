@@ -291,8 +291,9 @@ out: `tokenManager` records which environment the stored credentials belong to
 and purges them when that changes, so a production token is never sent to the
 staging API.
 
-From the Xcode GUI, pick the `TemplateProject Staging` scheme rather than
-editing build configurations by hand.
+From the Xcode GUI, pick the scheme named after the environment:
+`TemplateProject Dev`, `TemplateProject Staging` or `TemplateProject
+Production`.
 
 ### Add a persisted value
 

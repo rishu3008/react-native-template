@@ -399,12 +399,20 @@ extractable (rule 23). `.env` itself is generated per build and gitignored.
 All three ship under one bundle identifier, `com.templateproject`, and one
 display name. A variant selects its `.env` file and nothing else.
 
-On iOS there are two schemes. `TemplateProject` runs Debug and archives
-Release, which is the React Native default and covers development and
-production. `TemplateProject Staging` does the same for the two staging
-configurations. Without it, running staging from the Xcode GUI means editing
-the scheme's build configuration by hand every time -- `--mode` only helps
-from the command line.
+On iOS each environment has its own scheme, so the Xcode dropdown names the
+environment rather than a build configuration:
+
+| Scheme                       | Configurations                     | `.env`             |
+| ---------------------------- | ---------------------------------- | ------------------ |
+| `TemplateProject Dev`        | `Debug`                            | `.env.development` |
+| `TemplateProject Staging`    | `Debug.Staging`, `Release.Staging` | `.env.staging`     |
+| `TemplateProject Production` | `Release`                          | `.env.production`  |
+
+There is deliberately no scheme named plainly `TemplateProject`. React Native's
+default scheme runs `Debug` and archives `Release`, which here means it is the
+development environment when you run it and the production environment when you
+archive it. That is precisely the ambiguity these schemes exist to remove, so
+every npm script passes `--scheme` explicitly.
 
 The alternative -- suffixed identifiers, so the variants install side by side
 -- buys one thing, coexistence on a single device, and costs three push

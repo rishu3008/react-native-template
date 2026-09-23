@@ -120,7 +120,7 @@ jobs:
         run: |
           xcodebuild \
             -workspace ios/TemplateProject.xcworkspace \
-            -scheme TemplateProject \
+            -scheme "TemplateProject Dev" \
             -configuration ${{ matrix.configuration }} \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
