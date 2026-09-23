@@ -48,5 +48,40 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/**/index.ts',
+    // Test helpers, not production code.
+    '!src/app/testing/**',
   ],
+  /**
+   * Thresholds sit just below what the suite currently achieves, so a
+   * rounding change does not fail the build while any real regression does.
+   *
+   * They ratchet upward and are never lowered to make a build pass (rule 49).
+   * If a change cannot meet them, it needs tests.
+   */
+  coverageThreshold: {
+    global: {
+      statements: 79,
+      branches: 72,
+      functions: 67,
+      lines: 79,
+    },
+    // The layers a bug hurts most carry their own higher floor, so overall
+    // coverage cannot be propped up by well-tested UI while the API client or
+    // the navigation tree quietly rots.
+    './src/services/api/': {
+      statements: 88,
+      branches: 80,
+      lines: 88,
+    },
+    './src/navigation/': {
+      statements: 90,
+      branches: 80,
+      lines: 90,
+    },
+    './src/components/feedback/': {
+      statements: 88,
+      branches: 82,
+      lines: 88,
+    },
+  },
 };

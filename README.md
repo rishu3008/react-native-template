@@ -394,6 +394,41 @@ project 'TemplateProject.xcodeproj',
 Without it, React Native compiles out the dev server for the staging
 configuration and the app aborts with "No script URL provided".
 
+## Testing and CI
+
+```bash
+npm run validate        # typecheck + lint + test
+npm run test:coverage   # coverage, with thresholds enforced
+```
+
+`src/app/__tests__/smoke.test.tsx` is the template smoke test: launch, sign
+in, theme, navigate, open a modal, open a bottom sheet, type into an input --
+driven through the real app rather than mounted pieces. Its job is to fail
+when one phase breaks another's wiring, which unit tests scoped to a single
+component will not catch.
+
+Coverage thresholds live in `jest.config.js` and fail the build on their own.
+They ratchet upward and are never lowered to make a build pass (rule 49). The
+layers a bug hurts most -- the API client, navigation, feedback components --
+carry higher floors than the global one, so overall coverage cannot be propped
+up by well-tested UI while they quietly rot.
+
+CI is split by cost, because macOS runners are billed at a multiple of Linux
+ones:
+
+| Trigger         | Runs                                                           |
+| --------------- | -------------------------------------------------------------- |
+| Every PR        | validate, secret scan, Android debug build, 16 KB check        |
+| Merge to `main` | the above, plus the iOS build                                  |
+| Nightly         | the above, plus release-configuration builds of both platforms |
+
+`scripts/check-16kb-alignment.js` reads the built APK and verifies every
+arm64 library's PT_LOAD segments are aligned to at least 16384 bytes. It
+inspects the artifact rather than a declared list, because rule 34 requires
+this for every native dependency and a misaligned library fails only on
+Android 15 devices -- the kind of bug that reaches production precisely
+because it never reproduces locally.
+
 ## Version coupling
 
 `react-native-reanimated` and `react-native-worklets` are a matched pair --
@@ -409,7 +444,8 @@ on it. Upgrade both together:
 
 Phases 1 (foundation), 2 (design system), 3 (overlays and feedback), 4
 (navigation), 5 (data layer) and 6 (cross-cutting, including environment
-variants) are complete. The playground/CI pass and template packaging follow.
+variants) and 7 (testing and CI) are complete. Template packaging and the
+v1.0 release follow.
 
 The 16 KB page-size check required by rule 34 was run against the debug APK
 after the animation stack landed: all 20 arm64 libraries, including

@@ -8,6 +8,7 @@ import {
   InputsSection,
   ListSection,
   MediaSection,
+  PlatformSection,
   OverlaysSection,
   SelectionSection,
   StatesSection,
@@ -51,6 +52,8 @@ export const PlaygroundScreen = () => (
       <SurfacesSection />
       <Divider />
       <ListSection />
+      <Divider />
+      <PlatformSection />
       <Divider />
       <ColorsSection />
     </Stack>

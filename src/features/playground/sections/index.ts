@@ -12,4 +12,5 @@ export {
 export { DataSection } from './DataSection';
 export { OverlaysSection, StatesSection } from './FeedbackSections';
 export { MediaSection } from './MediaSection';
+export { PlatformSection } from './PlatformSection';
 export { ListSection, SurfacesSection } from './SurfaceSections';

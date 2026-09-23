@@ -1,18 +1,28 @@
 # CI is split by cost so pull-request feedback stays fast (AGENTS.md 54).
 #
-#   every PR      install, typecheck, lint, tests, Android debug build
-#   merge to main the above, plus the iOS build
-#   release tag   the above, plus generated-project validation (added in Phase 8)
+#   every PR       validate, secret scan, Android debug build
+#   merge to main  the above, plus the iOS build
+#   nightly        the above, plus a release-configuration build of both
+#
+# macOS runners are billed at a multiple of Linux ones, which is why iOS does
+# not run on every pull request.
 name: CI
 
 on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    # Nightly, so the slower checks run without blocking anyone.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
 
 jobs:
   validate:
@@ -28,12 +38,40 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check
-      - run: npm test -- --ci
+      # Coverage thresholds live in jest.config.js and fail the run on their
+      # own; rule 49 forbids lowering them to make a build pass.
+      - run: npm run test:coverage -- --ci
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks needs history to scan commits, not just the tree.
+          fetch-depth: 0
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   android:
-    name: Android debug build
+    name: Android ${{ matrix.variant }}
     runs-on: ubuntu-latest
     needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        # Development on every run; the release configuration only nightly,
+        # where its extra minutes do not block a pull request.
+        variant: ${{ github.event_name == 'schedule' && fromJSON('["DevelopmentDebug","ProductionRelease"]') || fromJSON('["DevelopmentDebug"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,19 +81,28 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
       - uses: gradle/actions/setup-gradle@v4
       - run: npm ci
-      - run: ./gradlew assembleDebug --no-daemon
+      - name: Build
+        run: ./gradlew assemble${{ matrix.variant }} --no-daemon
         working-directory: android
+      - name: Verify 16 KB page-size alignment
+        # Rule 34: every native dependency must be checked, not React Native
+        # alone. A misaligned library crashes on Android 15 devices only.
+        run: node scripts/check-16kb-alignment.js
+        working-directory: .
 
   ios:
-    name: iOS build
-    # macOS runners are slow and metered, so this runs on main rather than on
-    # every pull request.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: iOS ${{ matrix.configuration }}
+    # macOS runners are slow and metered, so this stays off pull requests.
+    if: github.event_name != 'pull_request'
     runs-on: macos-latest
     needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: ${{ github.event_name == 'schedule' && fromJSON('["Debug","Release"]') || fromJSON('["Debug"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -66,13 +113,14 @@ jobs:
         with:
           bundler-cache: true
       - run: npm ci
-      - run: bundle exec pod install --project-directory=ios
+      - name: Install pods
+        run: bundle exec pod install --project-directory=ios
       - name: Build
         run: |
           xcodebuild \
             -workspace ios/TemplateProject.xcworkspace \
             -scheme TemplateProject \
-            -configuration Debug \
+            -configuration ${{ matrix.configuration }} \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             -quiet \
