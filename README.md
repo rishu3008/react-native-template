@@ -7,6 +7,11 @@ logic**. A new application should mostly add `src/features/`, not rebuild the
 theme, navigation, API client, storage, auth architecture, error handling,
 logging, testing or CI.
 
+**New here?** [docs/GUIDE.md](./docs/GUIDE.md) is the practical walkthrough:
+how the layers fit together, where each kind of thing goes, and a recipe for
+adding a screen, a route, an API call, a colour, an icon, a font, a permission
+or an environment variable.
+
 The engineering rules this template is built under live in
 [AGENTS.md](./AGENTS.md). Read that before contributing.
 
