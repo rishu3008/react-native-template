@@ -31,7 +31,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "validate": "npm run typecheck && npm run lint && npm run test",
-    "pods": "cd ios && bundle exec pod install && cd ..",
+    "pods": "cd ios && LANG=en_US.UTF-8 bundle exec pod install && cd ..",
     "prepare": "husky",
     "assets": "node scripts/generate-assets.js",
     "assets:check": "node scripts/generate-assets.js --check",
