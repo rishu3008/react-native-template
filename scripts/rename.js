@@ -270,35 +270,6 @@ const main = () => {
     [`ios/${PLACEHOLDER.name}.xcworkspace`, `ios/${target.name}.xcworkspace`],
   ];
 
-  // The scheme lives inside the project directory that was just moved, so it
-  // is resolved against whichever of the two currently exists. Without this
-  // a dry run reports no scheme move at all, and the check would be silently
-  // skipped rather than verified.
-  const schemeParent = fs.existsSync(
-    path.join(root, `ios/${target.name}.xcodeproj`),
-  )
-    ? `ios/${target.name}.xcodeproj`
-    : `ios/${PLACEHOLDER.name}.xcodeproj`;
-
-  // Every scheme, not just the default one: the template ships a second
-  // scheme for the staging configurations, and a project that adds more must
-  // not have them silently left behind under the old name.
-  const schemeDir = `${schemeParent}/xcshareddata/xcschemes`;
-  const schemeDirFull = path.join(root, schemeDir);
-
-  if (fs.existsSync(schemeDirFull)) {
-    for (const scheme of fs.readdirSync(schemeDirFull)) {
-      if (!scheme.startsWith(PLACEHOLDER.name)) continue;
-
-      const renamed = target.name + scheme.slice(PLACEHOLDER.name.length);
-
-      moves.push([
-        `${schemeDir}/${scheme}`,
-        `ios/${target.name}.xcodeproj/xcshareddata/xcschemes/${renamed}`,
-      ]);
-    }
-  }
-
   console.log('');
 
   for (const [from, to] of moves) {
@@ -312,6 +283,40 @@ const main = () => {
     if (!dryRun) {
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.renameSync(source, destination);
+    }
+  }
+
+  // Schemes are renamed *after* the moves above, not alongside them.
+  //
+  // They live inside ios/<name>.xcodeproj, so listing them as peers meant the
+  // parent directory was renamed first and every scheme source path stopped
+  // existing -- which the loop above skips in silence. A dry run did not show
+  // it, because nothing moves in a dry run and the old paths were still there
+  // to report. The dry run said the schemes would be renamed and the real run
+  // left them behind, which broke `npm run ios` in the generated project:
+  // the scripts ask for "<Name> Dev" and only "TemplateProject Dev" existed.
+  const schemeDir = path.join(
+    root,
+    'ios',
+    `${dryRun ? PLACEHOLDER.name : target.name}.xcodeproj`,
+    'xcshareddata',
+    'xcschemes',
+  );
+
+  if (fs.existsSync(schemeDir)) {
+    for (const scheme of fs.readdirSync(schemeDir)) {
+      if (!scheme.startsWith(PLACEHOLDER.name)) continue;
+
+      const renamed = target.name + scheme.slice(PLACEHOLDER.name.length);
+
+      console.log(`    move   ${scheme} -> ${renamed}`);
+
+      if (!dryRun) {
+        fs.renameSync(
+          path.join(schemeDir, scheme),
+          path.join(schemeDir, renamed),
+        );
+      }
     }
   }
 
@@ -419,6 +424,45 @@ const main = () => {
   if (dryRun) {
     console.log('  Dry run: nothing was written.\n');
     return;
+  }
+
+  /**
+   * Confirm the rename actually happened (AGENTS.md 55, 70.1).
+   *
+   * Every step above reports what it intends to do, and a step that quietly
+   * does nothing reports the same thing as a step that worked -- which is how
+   * the scheme files came to keep their placeholder names through a run that
+   * printed "move" for each of them. Announcing the work is not evidence the
+   * work happened, so the result is checked against the filesystem here.
+   *
+   * Paths only. File *contents* are deliberately left alone in README.md,
+   * AGENTS.md and CLAUDE.md, which document the template and name the
+   * placeholder on purpose.
+   */
+  const survivors = [];
+  const findSurvivors = dir => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (EXCLUDED_DIRECTORIES.has(entry.name)) continue;
+
+      const full = path.join(dir, entry.name);
+
+      if (entry.name.toLowerCase().includes(PLACEHOLDER.name.toLowerCase())) {
+        survivors.push(path.relative(root, full));
+      }
+
+      if (entry.isDirectory()) findSurvivors(full);
+    }
+  };
+  findSurvivors(root);
+
+  if (survivors.length > 0) {
+    console.error('\n  The rename left placeholder paths behind:\n');
+    for (const survivor of survivors) console.error(`      ${survivor}`);
+    console.error(
+      '\n  This is a bug in this script, not something to fix by hand.\n' +
+        '  The project is half-renamed; restore it and report the paths above.\n',
+    );
+    process.exit(1);
   }
 
   /**
