@@ -27,6 +27,7 @@ The engineering rules this template is built under live in
 | Architecture | New Architecture (Fabric + TurboModules)                                     |
 | JS engine    | Hermes                                                                       |
 | Node         | 22.11.0 (see `.nvmrc`)                                                       |
+| Ruby         | 3.3.9 (see `.ruby-version`), for CocoaPods                                   |
 | Android      | compileSdk 37, targetSdk 36, minSdk 24, Kotlin 2.2.0, Gradle 9.4.1, NDK 27.1 |
 | Java         | 17                                                                           |
 | iOS          | UIScene life cycle, CocoaPods                                                |
