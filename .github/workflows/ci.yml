@@ -65,6 +65,11 @@ jobs:
       # it scans what the PR adds rather than all of history. Without this the
       # request 403s and the action exits non-zero -- which reads as "a secret
       # was found" when it means "the token could not look".
+      #
+      # Read, not write: the action would also like to post findings as a PR
+      # comment and logs a warning when it cannot. Findings still reach the
+      # job summary and the SARIF artifact, which is enough, and a scanner
+      # does not need permission to write to pull requests to do its job.
       pull-requests: read
     steps:
       - uses: actions/checkout@v4
@@ -98,8 +103,25 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
       - uses: gradle/actions/setup-gradle@v4
       - run: npm ci
+      - name: Free runner disk space
+        # The first Android run failed with "No space left on device" partway
+        # through the native build. A hosted runner has roughly 14 GB free,
+        # and the New Architecture's C++ intermediates for several ABIs do not
+        # fit beside the preinstalled toolchains. These three are not used by
+        # any job here; the Android SDK and NDK are deliberately left alone.
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h /
       - name: Build
-        run: ./gradlew assemble${{ matrix.variant }} --no-daemon
+        # One ABI on pull requests. The New Architecture compiles C++ per
+        # architecture, so four ABIs is four times the build and four times
+        # the disk for feedback nobody reads per-architecture. arm64-v8a is
+        # also the only one the 16 KB check below inspects. The nightly run
+        # builds every ABI, which is where that coverage belongs.
+        run: |
+          ./gradlew assemble${{ matrix.variant }} --no-daemon \
+            ${{ github.event_name == 'schedule' && ' ' || '-PreactNativeArchitectures=arm64-v8a' }}
         working-directory: android
       - name: Verify 16 KB page-size alignment
         # Rule 34: every native dependency must be checked, not React Native
