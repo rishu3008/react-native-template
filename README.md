@@ -1,6 +1,10 @@
 # TemplateProject
 
+<!-- template-only:start -->
+
 A production-grade, reusable React Native starter template.
+
+<!-- template-only:end -->
 
 It provides roughly **90% of the engineering foundation and none of the business
 logic**. A new application should mostly add `src/features/`, not rebuild the
@@ -32,6 +36,8 @@ The engineering rules this template is built under live in
 | Java         | 17                                                                           |
 | iOS          | UIScene life cycle, CocoaPods                                                |
 
+<!-- template-only:start -->
+
 The canonical placeholder identity is `TemplateProject` / `com.templateproject`.
 See AGENTS.md rule 56.1 for why the placeholder is not simply `Template`.
 
@@ -62,6 +68,8 @@ npm install
 npm run pods
 npm run validate
 ```
+
+<!-- template-only:end -->
 
 ## Getting started
 

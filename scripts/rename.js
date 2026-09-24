@@ -58,11 +58,28 @@ const EXCLUDED_DIRECTORIES = new Set([
 
 const EXCLUDED_FILES = new Set([
   'package-lock.json',
+  // AGENTS.md and CLAUDE.md are the engineering rules, and rule 56.1 documents
+  // the placeholder identity on purpose. Renaming those tables would turn the
+  // reasoning into nonsense: "the canonical placeholder identity is AcmeApp".
+  // They are carried into the generated project intact, because the rules
+  // apply to the application too.
+  //
+  // README.md is not excluded. It is the generated project's front page, so it
+  // takes the new name -- the passages that only make sense in the template
+  // are fenced with template-only markers and removed instead.
   'AGENTS.md',
   'CLAUDE.md',
-  'README.md',
   'yarn.lock',
 ]);
+
+/**
+ * Prose that belongs to the template and not to what it generates: how to
+ * create a project from it, and why the placeholder is what it is. Fenced
+ * with explicit markers rather than matched by heading text, so editing the
+ * wording around them cannot quietly change what gets removed.
+ */
+const TEMPLATE_ONLY_BLOCK =
+  /[^\n]*<!-- template-only:start -->\n[\s\S]*?<!-- template-only:end -->[^\n]*\n?/g;
 
 const TEXT_EXTENSIONS = new Set([
   '.ts',
@@ -226,7 +243,14 @@ const main = () => {
     if (!isTextFile(file)) return;
 
     const original = fs.readFileSync(file, 'utf8');
-    let updated = original;
+    let updated = original.replace(TEMPLATE_ONLY_BLOCK, '');
+
+    // Removing a fenced block leaves the blank lines that surrounded it
+    // stacked against each other, which renders as a gap. Only collapse when
+    // something was actually removed, so no other file gets reformatted.
+    if (updated !== original) {
+      updated = updated.replace(/\n{3,}/g, '\n\n');
+    }
 
     for (const [from, to] of replacements) {
       updated = updated.split(from).join(to);
