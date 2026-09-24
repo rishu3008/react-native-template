@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "description": "React Native and every package containing native code is upgraded only through the rule 58 process, on a dedicated branch with both platform builds verified. Bots do not read AGENTS.md, so the constraint is configured here.",
+      "matchPackageNames": [
+        "react-native",
+        "react",
+        "react-dom",
+        "react-test-renderer",
+        "/^@react-native//",
+        "/^@react-native-community//",
+        "/^@react-navigation//",
+        "react-native-screens",
+        "react-native-safe-area-context",
+        "react-native-gesture-handler",
+        "react-native-reanimated",
+        "react-native-worklets",
+        "react-native-svg",
+        "react-native-keychain",
+        "react-native-permissions",
+        "react-native-config",
+        "@d11/react-native-fast-image",
+        "@react-native-async-storage/async-storage",
+        "@gorhom/bottom-sheet"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "reanimated and worklets are a matched pair and must move together.",
+      "matchPackageNames": ["react-native-reanimated", "react-native-worklets"],
+      "groupName": "reanimated"
+    },
+    {
+      "description": "Development tooling can update automatically; the blast radius is a failed CI run rather than a broken build.",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": false
+    }
+  ]
+}

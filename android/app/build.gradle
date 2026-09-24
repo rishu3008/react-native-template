@@ -3,6 +3,25 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 /**
+ * react-native-config: reads the .env file named by the active product
+ * flavour and injects the values into BuildConfig and resources.
+ *
+ * `envConfigFiles` maps a build variant to its file. The keys are matched
+ * against the lowercased variant name, so `stagingDebug` matches the
+ * `stagingdebug` key.
+ */
+project.ext.envConfigFiles = [
+    developmentdebug  : ".env.development",
+    developmentrelease: ".env.development",
+    stagingdebug      : ".env.staging",
+    stagingrelease    : ".env.staging",
+    productiondebug   : ".env.production",
+    productionrelease : ".env.production",
+]
+
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+
+/**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
@@ -77,14 +96,43 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.template"
+    namespace "com.templateproject"
     defaultConfig {
-        applicationId "com.template"
+        applicationId "com.templateproject"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
     }
+    /**
+     * One dimension, three flavours -- selecting the .env file and nothing
+     * else (AGENTS.md 24).
+     *
+     * All three share one applicationId and one app name deliberately. The
+     * alternative, suffixed identifiers, exists to let the variants coexist
+     * on a device; this project does not need that, and paying for it would
+     * mean three push registrations, three crash-reporting projects and
+     * three analytics streams to keep aligned.
+     *
+     * The consequence is that installing one variant over another reuses the
+     * previous one's storage. tokenManager clears credentials when the
+     * environment changes, so a staging token cannot survive into a
+     * production build.
+     */
+    flavorDimensions += "environment"
+
+    productFlavors {
+        development {
+            dimension "environment"
+        }
+        staging {
+            dimension "environment"
+        }
+        production {
+            dimension "environment"
+        }
+    }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')

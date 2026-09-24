@@ -1,0 +1,28 @@
+# gitleaks configuration (AGENTS.md 23).
+#
+# Extends the bundled ruleset rather than replacing it, so rules added by a
+# later gitleaks release arrive automatically instead of being frozen here.
+[extend]
+useDefault = true
+
+# CocoaPods records a SHA-1 of each pod's podspec in Podfile.lock under SPEC
+# CHECKSUMS. Those are forty hex characters, so generic-api-key sees high
+# entropy -- and because that rule pairs entropy with a secret-ish keyword,
+# exactly two of roughly 120 identical-looking lines were reported:
+# RNKeychain contains "key" and React-cxxstableapi contains "api". CocoaPods
+# publishes these values for every public pod and they are reproducible from
+# the podspec, so they are the opposite of a credential.
+#
+# Matched on the *line* shape rather than by path. Exempting Podfile.lock
+# wholesale was tried first and is wrong: a `paths` allowlist suppresses every
+# rule in the file, so a planted AWS key and GitHub token stopped being
+# reported. Verified by planting both and confirming they still are.
+#
+# Residual risk, accepted: a real credential that happens to occupy a whole
+# line as `name: <forty lowercase hex>` would be missed. A forty-hex secret
+# does exist in the wild -- legacy GitHub tokens had that shape -- but it
+# would have to appear with no quoting and no other content on the line.
+[allowlist]
+description = "CocoaPods dependency checksums are public, not credentials"
+regexTarget = "line"
+regexes = ['''^\s*[A-Za-z0-9_.+-]+: [a-f0-9]{40}\s*$''']
