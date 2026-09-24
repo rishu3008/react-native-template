@@ -58,11 +58,28 @@ const EXCLUDED_DIRECTORIES = new Set([
 
 const EXCLUDED_FILES = new Set([
   'package-lock.json',
+  // AGENTS.md and CLAUDE.md are the engineering rules, and rule 56.1 documents
+  // the placeholder identity on purpose. Renaming those tables would turn the
+  // reasoning into nonsense: "the canonical placeholder identity is AcmeApp".
+  // They are carried into the generated project intact, because the rules
+  // apply to the application too.
+  //
+  // README.md is not excluded. It is the generated project's front page, so it
+  // takes the new name -- the passages that only make sense in the template
+  // are fenced with template-only markers and removed instead.
   'AGENTS.md',
   'CLAUDE.md',
-  'README.md',
   'yarn.lock',
 ]);
+
+/**
+ * Prose that belongs to the template and not to what it generates: how to
+ * create a project from it, and why the placeholder is what it is. Fenced
+ * with explicit markers rather than matched by heading text, so editing the
+ * wording around them cannot quietly change what gets removed.
+ */
+const TEMPLATE_ONLY_BLOCK =
+  /[^\n]*<!-- template-only:start -->\n[\s\S]*?<!-- template-only:end -->[^\n]*\n?/g;
 
 const TEXT_EXTENSIONS = new Set([
   '.ts',
@@ -226,7 +243,14 @@ const main = () => {
     if (!isTextFile(file)) return;
 
     const original = fs.readFileSync(file, 'utf8');
-    let updated = original;
+    let updated = original.replace(TEMPLATE_ONLY_BLOCK, '');
+
+    // Removing a fenced block leaves the blank lines that surrounded it
+    // stacked against each other, which renders as a gap. Only collapse when
+    // something was actually removed, so no other file gets reformatted.
+    if (updated !== original) {
+      updated = updated.replace(/\n{3,}/g, '\n\n');
+    }
 
     for (const [from, to] of replacements) {
       updated = updated.split(from).join(to);
@@ -270,35 +294,6 @@ const main = () => {
     [`ios/${PLACEHOLDER.name}.xcworkspace`, `ios/${target.name}.xcworkspace`],
   ];
 
-  // The scheme lives inside the project directory that was just moved, so it
-  // is resolved against whichever of the two currently exists. Without this
-  // a dry run reports no scheme move at all, and the check would be silently
-  // skipped rather than verified.
-  const schemeParent = fs.existsSync(
-    path.join(root, `ios/${target.name}.xcodeproj`),
-  )
-    ? `ios/${target.name}.xcodeproj`
-    : `ios/${PLACEHOLDER.name}.xcodeproj`;
-
-  // Every scheme, not just the default one: the template ships a second
-  // scheme for the staging configurations, and a project that adds more must
-  // not have them silently left behind under the old name.
-  const schemeDir = `${schemeParent}/xcshareddata/xcschemes`;
-  const schemeDirFull = path.join(root, schemeDir);
-
-  if (fs.existsSync(schemeDirFull)) {
-    for (const scheme of fs.readdirSync(schemeDirFull)) {
-      if (!scheme.startsWith(PLACEHOLDER.name)) continue;
-
-      const renamed = target.name + scheme.slice(PLACEHOLDER.name.length);
-
-      moves.push([
-        `${schemeDir}/${scheme}`,
-        `ios/${target.name}.xcodeproj/xcshareddata/xcschemes/${renamed}`,
-      ]);
-    }
-  }
-
   console.log('');
 
   for (const [from, to] of moves) {
@@ -312,6 +307,40 @@ const main = () => {
     if (!dryRun) {
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.renameSync(source, destination);
+    }
+  }
+
+  // Schemes are renamed *after* the moves above, not alongside them.
+  //
+  // They live inside ios/<name>.xcodeproj, so listing them as peers meant the
+  // parent directory was renamed first and every scheme source path stopped
+  // existing -- which the loop above skips in silence. A dry run did not show
+  // it, because nothing moves in a dry run and the old paths were still there
+  // to report. The dry run said the schemes would be renamed and the real run
+  // left them behind, which broke `npm run ios` in the generated project:
+  // the scripts ask for "<Name> Dev" and only "TemplateProject Dev" existed.
+  const schemeDir = path.join(
+    root,
+    'ios',
+    `${dryRun ? PLACEHOLDER.name : target.name}.xcodeproj`,
+    'xcshareddata',
+    'xcschemes',
+  );
+
+  if (fs.existsSync(schemeDir)) {
+    for (const scheme of fs.readdirSync(schemeDir)) {
+      if (!scheme.startsWith(PLACEHOLDER.name)) continue;
+
+      const renamed = target.name + scheme.slice(PLACEHOLDER.name.length);
+
+      console.log(`    move   ${scheme} -> ${renamed}`);
+
+      if (!dryRun) {
+        fs.renameSync(
+          path.join(schemeDir, scheme),
+          path.join(schemeDir, renamed),
+        );
+      }
     }
   }
 
@@ -419,6 +448,45 @@ const main = () => {
   if (dryRun) {
     console.log('  Dry run: nothing was written.\n');
     return;
+  }
+
+  /**
+   * Confirm the rename actually happened (AGENTS.md 55, 70.1).
+   *
+   * Every step above reports what it intends to do, and a step that quietly
+   * does nothing reports the same thing as a step that worked -- which is how
+   * the scheme files came to keep their placeholder names through a run that
+   * printed "move" for each of them. Announcing the work is not evidence the
+   * work happened, so the result is checked against the filesystem here.
+   *
+   * Paths only. File *contents* are deliberately left alone in README.md,
+   * AGENTS.md and CLAUDE.md, which document the template and name the
+   * placeholder on purpose.
+   */
+  const survivors = [];
+  const findSurvivors = dir => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (EXCLUDED_DIRECTORIES.has(entry.name)) continue;
+
+      const full = path.join(dir, entry.name);
+
+      if (entry.name.toLowerCase().includes(PLACEHOLDER.name.toLowerCase())) {
+        survivors.push(path.relative(root, full));
+      }
+
+      if (entry.isDirectory()) findSurvivors(full);
+    }
+  };
+  findSurvivors(root);
+
+  if (survivors.length > 0) {
+    console.error('\n  The rename left placeholder paths behind:\n');
+    for (const survivor of survivors) console.error(`      ${survivor}`);
+    console.error(
+      '\n  This is a bug in this script, not something to fix by hand.\n' +
+        '  The project is half-renamed; restore it and report the paths above.\n',
+    );
+    process.exit(1);
   }
 
   /**
