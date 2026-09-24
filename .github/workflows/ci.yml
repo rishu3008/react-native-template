@@ -18,6 +18,12 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+# Least privilege by default: the token can read the code and nothing else.
+# A job needing more grants it to itself, so a widened scope is visible in the
+# diff of the job that widened it (rule 23).
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -53,6 +59,13 @@ jobs:
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # gitleaks-action asks the API which commits a pull request contains, so
+      # it scans what the PR adds rather than all of history. Without this the
+      # request 403s and the action exits non-zero -- which reads as "a secret
+      # was found" when it means "the token could not look".
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
