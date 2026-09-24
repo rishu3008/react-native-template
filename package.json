@@ -1,6 +1,10 @@
 {
   "name": "TemplateProject",
   "version": "0.0.1",
+  "template": {
+    "version": "1.0.0",
+    "reactNative": "0.87.1"
+  },
   "private": true,
   "scripts": {
     "android": "react-native run-android",

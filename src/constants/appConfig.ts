@@ -62,9 +62,39 @@ const asEnvironment = (value: string | undefined): AppEnvironment => {
   return 'development';
 };
 
+const environment = asEnvironment(Config.ENVIRONMENT);
+
+/**
+ * The base URL, with a default only where a default is safe.
+ *
+ * Development gets one because the template ships no server and should be
+ * explorable straight after cloning.
+ *
+ * Staging and production get none. A build that reaches them without
+ * API_BASE_URL is misconfigured, and the alternative to failing here is an app
+ * that quietly sends real traffic -- and real access tokens -- to a public
+ * test API. Throwing at startup means the first person to run the build finds
+ * it; falling back means nobody does (rules 23, 24).
+ */
+const resolveBaseUrl = (value: string | undefined): string => {
+  if (value != null && value !== '') {
+    return value;
+  }
+
+  if (environment === 'development') {
+    return 'https://jsonplaceholder.typicode.com';
+  }
+
+  throw new Error(
+    `API_BASE_URL is missing from .env.${environment}. Set it there and ` +
+      'rebuild -- these values are compiled into the binary, so a Metro ' +
+      'reload will not pick up the change.',
+  );
+};
+
 export const appConfig: AppConfig = {
-  environment: asEnvironment(Config.ENVIRONMENT),
-  apiBaseUrl: Config.API_BASE_URL ?? 'https://jsonplaceholder.typicode.com',
+  environment,
+  apiBaseUrl: resolveBaseUrl(Config.API_BASE_URL),
   apiTimeoutMs: asNumber(Config.API_TIMEOUT_MS, 15_000),
   apiMaxRetries: asNumber(Config.API_MAX_RETRIES, 2),
   enableDevTools: asBoolean(Config.ENABLE_DEV_TOOLS, __DEV__),
