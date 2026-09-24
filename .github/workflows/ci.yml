@@ -130,7 +130,7 @@ jobs:
         working-directory: .
 
   ios:
-    name: iOS ${{ matrix.configuration }}
+    name: iOS ${{ matrix.scheme }}
     # macOS runners are slow and metered, so this stays off pull requests.
     if: github.event_name != 'pull_request'
     runs-on: macos-latest
@@ -138,7 +138,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        configuration: ${{ github.event_name == 'schedule' && fromJSON('["Debug","Release"]') || fromJSON('["Debug"]') }}
+        # Scheme and configuration travel together. Each scheme owns only the
+        # configurations of its own environment, so pairing the development
+        # scheme with Release would compile .env.production under it and build
+        # something no one ever ships.
+        include: ${{ github.event_name == 'schedule' && fromJSON('[{"scheme":"TemplateProject Dev","configuration":"Debug"},{"scheme":"TemplateProject Production","configuration":"Release"}]') || fromJSON('[{"scheme":"TemplateProject Dev","configuration":"Debug"}]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -155,7 +159,7 @@ jobs:
         run: |
           xcodebuild \
             -workspace ios/TemplateProject.xcworkspace \
-            -scheme "TemplateProject Dev" \
+            -scheme "${{ matrix.scheme }}" \
             -configuration ${{ matrix.configuration }} \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
